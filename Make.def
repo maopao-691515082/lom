@@ -1,0 +1,2 @@
+CXX := g++
+CXX_FLAGS := -std=gnu++17 -ggdb3 -O2 -Werror -Wshadow -fPIC -fno-strict-aliasing -fwrapv -pthread -U_FORTIFY_SOURCE

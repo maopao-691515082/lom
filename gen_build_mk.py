@@ -25,30 +25,18 @@ for i, f in enumerate(files):
 
 mkf = open("Makefile", "w")
 print >> mkf, """
-.PHONY: all prepare
+.PHONY: all
 
-CXX := g++
-CXX_FLAGS := -ggdb3 -O2 -Werror -Wshadow -fPIC -fno-strict-aliasing -fwrapv -pthread -U_FORTIFY_SOURCE
+include ../Make.def
 
-LIB := lom/lib/liblom.a
-OBJS := %s
-
-all: prepare $(LIB)
-
-prepare:""" % " ".join(objs)
+all:"""
 
 for d in dirs:
     print >> mkf, "\t@mkdir -p tmpobjs/%s" % d
 
-print >> mkf, """
-$(LIB): $(OBJS)
-\tar -qs $@ $<
-"""
-
 for f, o in zip(files, objs):
-    print >> mkf, """
-%s: %s
-\t$(CXX) $(CXX_FLAGS) -I../include -c -o $@ $<
-""" % (o, f)
+    print >> mkf, "\t$(CXX) $(CXX_FLAGS) -I../include -c -o %s %s" % (o, f)
+
+print >> mkf, "\tar -qs lom/lib/liblom.a %s" % " ".join(objs)
 
 mkf.close()
