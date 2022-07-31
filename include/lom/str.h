@@ -9,7 +9,7 @@
 
 #include <lom/util.h>
 #include <lom/limit.h>
-#include <lom/vec_slice.h>
+#include <lom/go_slice.h>
 
 namespace lom
 {
@@ -195,7 +195,7 @@ public:
 
     Str Repr() const;
 
-    VecSlice<StrSlice> Split(StrSlice sep) const;
+    GoSlice<StrSlice> Split(StrSlice sep) const;
 };
 
 class Str

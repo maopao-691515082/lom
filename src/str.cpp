@@ -74,7 +74,7 @@ Str StrSlice::Repr() const
     //todo
 }
 
-VecSlice<StrSlice> StrSlice::Split(StrSlice sep) const
+GoSlice<StrSlice> StrSlice::Split(StrSlice sep) const
 {
     //todo
 }
