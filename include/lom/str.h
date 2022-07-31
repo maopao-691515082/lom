@@ -9,7 +9,7 @@
 
 #include <lom/util.h>
 #include <lom/limit.h>
-#include <lom/go_slice.h>
+#include <lom/vec_slice.h>
 
 namespace lom
 {
@@ -28,7 +28,7 @@ class StrSlice
     uint16_t len_high_;
     uint32_t len_low_;
 
-    void FixIdx(ssize_t &idx, bool allow_end) const
+    ssize_t FixIdx(ssize_t &idx, bool allow_end) const
     {
         auto len = Len();
         if (idx < 0)
@@ -36,6 +36,7 @@ class StrSlice
             idx += len;
         }
         Assert(0 <= idx && idx <= (allow_end ? len : len - 1));
+        return len;
     }
 
 public:
@@ -100,21 +101,58 @@ public:
 
     StrSlice Slice(ssize_t start, ssize_t len) const
     {
-        FixIdx(start, true);
-        auto cap = Len() - start;
+        auto this_len = FixIdx(start, true);
+        auto cap = this_len - start;
         Assert(0 <= len && len <= cap);
         return StrSlice(Data() + start, len, cap == len ? is_zero_end_ : (Data()[start + len] == 0));
     }
     StrSlice Slice(ssize_t start) const
     {
-        FixIdx(start, true);
-        return StrSlice(Data() + start, Len() - start, is_zero_end_);
+        auto this_len = FixIdx(start, true);
+        return StrSlice(Data() + start, this_len - start, is_zero_end_);
     }
 
-    bool HasByte(unsigned char b) const
+    ssize_t IndexByte(unsigned char b) const
     {
-        return memchr(Data(), b, Len());
+        auto p = (const char *)memchr(Data(), b, Len());
+        return p == nullptr ? -1 : p - Data();
     }
+    ssize_t RIndexByte(unsigned char b) const
+    {
+        auto p = (const char *)memrchr(Data(), b, Len());
+        return p == nullptr ? -1 : p - Data();
+    }
+    bool ContainsByte(unsigned char b) const
+    {
+        return IndexByte(b) >= 0;
+    }
+
+    ssize_t Index(StrSlice s) const
+    {
+        auto p = (const char *)memmem(Data(), Len(), s.Data(), s.Len());
+        return p == nullptr ? -1 : p - Data();
+    }
+    ssize_t RIndex(StrSlice s) const
+    {
+        auto data = Data(), s_data = s.Data();
+        auto len = Len(), s_len = s.Len();
+        if (len >= s_len)
+        {
+            for (auto i = len - s_len; i >= 0; -- i)
+            {
+                if (memcmp(data + i, s_data, s_len) == 0)
+                {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+    bool Contains(StrSlice s) const
+    {
+        return Index(s) >= 0;
+    }
+
     bool HasPrefix(StrSlice s) const
     {
         auto s_len = s.Len();
@@ -129,7 +167,7 @@ public:
     StrSlice LTrim(StrSlice chs = kSpaceBytes) const
     {
         ssize_t this_len = Len(), i = 0;
-        while (i < this_len && chs.HasByte(Data()[i]))
+        while (i < this_len && chs.ContainsByte(Data()[i]))
         {
             ++ i;
         }
@@ -138,7 +176,7 @@ public:
     StrSlice RTrim(StrSlice chs = kSpaceBytes) const
     {
         auto this_len = Len(), i = this_len - 1;
-        while (i >= 0 && chs.HasByte(Data()[i]))
+        while (i >= 0 && chs.ContainsByte(Data()[i]))
         {
             -- i;
         }

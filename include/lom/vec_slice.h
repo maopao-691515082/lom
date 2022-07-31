@@ -17,8 +17,10 @@ class VecSlice
         T *a_;
         ssize_t len_;
 
-        Array(ssize_t len) : a_(new T[len]), len_(len)
+        Array(ssize_t len) : len_(len)
         {
+            Assert(0 <= len && len <= ((ssize_t)1 << 48) / (ssize_t)sizeof(T));
+            a_ = new T[len];
         }
 
         ~Array()
@@ -35,18 +37,20 @@ class VecSlice
     {
     }
 
-    FixIdx(ssize_t &idx) const
+    ssize_t FixIdx(ssize_t &idx, bool allow_end) const
     {
+        auto len = Len();
         if (idx < 0)
         {
-            idx += Len();
+            idx += len;
         }
+        Assert(0 <= idx && idx <= (allow_end ? len : len - 1));
+        return len;
     }
 
     T &At(ssize_t idx) const
     {
-        FixIdx(idx);
-        Assert(0 <= idx && idx < Len());
+        FixIdx(idx, false);
         return a_->a_[start_ + idx];
     }
 
@@ -54,6 +58,12 @@ public:
 
     VecSlice()
     {
+    }
+
+    VecSlice(ssize_t len, ssize_t cap) : a_(new Array(cap)), start_(0), len_(len)
+    {
+        Assert(0 <= len && len <= cap);
+        
     }
 
     void ResetNil()
@@ -85,17 +95,14 @@ public:
 
     VecSlice<T> Slice(ssize_t start, ssize_t len) const
     {
-        FixIdx(start);
-        auto cap = Cap();
-        Assert(0 <= start && start <= cap && 0 <= len && len <= cap - start);
+        auto this_len = FixIdx(start, true);
+        Assert(0 <= len && len <= this_len - start);
         return VecSlice<T>(a_, start_ + start, len);
     }
     VecSlice<T> Slice(ssize_t start) const
     {
-        FixIdx(start);
-        auto len = Len();
-        Assert(0 <= start && start <= len);
-        return VecSlice<T>(a_, start_ + start, len - start);
+        auto this_len = FixIdx(start, true);
+        return VecSlice<T>(a_, start_ + start, this_len - start);
     }
 
     VecSlice<T> Append(T t) const
@@ -116,7 +123,30 @@ public:
     }
     VecSlice<T> Append(VecSlice<T> s) const
     {
-        //todo
+        auto len = Len(), cap = Cap(), s_len = s.Len();
+        if (cap - len >= s_len)
+        {
+            for (ssize_t i = 0; i < s_len; ++ i)
+            {
+                a_->a_[start_ + len + i] = s.a_->a_[s.start_ + i];
+            }
+            return VecSlice<T>(a_, start_, len + s_len);
+        }
+        auto new_cap = cap;
+        while (new_cap < len + s_len)
+        {
+            new_cap += new_cap / 2 + 1;
+        }
+        auto new_a = new Array(new_cap);
+        for (ssize_t i = 0; i < len; ++ i)
+        {
+            new_a->a_[i] = a_->a_[start_ + i];
+        }
+        for (ssize_t i = 0; i < len; ++ i)
+        {
+            new_a->a_[len + i] = s.a_->a_[s.start_ + i];
+        }
+        return VecSlice<T>(new_a, 0, len + s_len);
     }
 };
 
