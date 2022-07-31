@@ -193,7 +193,7 @@ public:
     bool ParseDouble(double &v) const;
     bool ParseLongDouble(long double &v) const;
 
-    Str Repr() const;
+//    Str Repr() const;
 
     GoSlice<StrSlice> Split(StrSlice sep) const;
 };

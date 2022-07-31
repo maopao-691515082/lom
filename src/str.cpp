@@ -69,14 +69,47 @@ bool StrSlice::ParseLongDouble(long double &v) const
     STR_SLICE_PARSE_NUM(strtold(p, (char **)&end_ptr));
 }
 
+/*
 Str StrSlice::Repr() const
 {
     //todo
 }
+*/
 
 GoSlice<StrSlice> StrSlice::Split(StrSlice sep) const
 {
-    //todo
+    GoSlice<StrSlice> gs;
+    if (sep.Len() == 0)
+    {
+        //by spaces
+        auto s = Trim();
+        while (s.Len() > 0)
+        {
+            ssize_t end_pos = 1;
+            while (end_pos < s.Len() && !isspace(s.Data()[end_pos]))
+            {
+                ++ end_pos;
+            }
+            gs = gs.Append(s.Slice(0, end_pos));
+            s = s.Slice(end_pos).LTrim();
+        }
+    }
+    else
+    {
+        auto s = *this;
+        for (;;)
+        {
+            auto idx = s.Index(sep);
+            if (idx < 0)
+            {
+                gs = gs.Append(s);
+                break;
+            }
+            gs = gs.Append(s.Slice(0, idx));
+            s = s.Slice(idx + sep.Len());
+        }
+    }
+    return gs;
 }
 
 }

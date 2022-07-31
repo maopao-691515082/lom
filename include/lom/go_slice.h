@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <initializer_list>
 
 #include <lom/mem.h>
 #include <lom/util.h>
@@ -22,6 +23,10 @@ class GoSlice
         {
             Assert(0 <= len && len <= ((ssize_t)1 << 48) / (ssize_t)sizeof(T));
             a_.resize((size_t)len);
+        }
+
+        Array(std::initializer_list<T> l) : a_(l)
+        {
         }
     };
 
@@ -66,6 +71,10 @@ public:
     }
 
     GoSlice(ssize_t len) : GoSlice(len, len)
+    {
+    }
+
+    GoSlice(std::initializer_list<T> l) : a_(new Array(l)), start_(0), len_((ssize_t)l.size())
     {
     }
 
@@ -155,7 +164,7 @@ public:
         {
             new_a->a_[i] = a_->a_[start_ + i];
         }
-        for (ssize_t i = 0; i < len; ++ i)
+        for (ssize_t i = 0; i < s_len; ++ i)
         {
             new_a->a_[len + i] = s.a_->a_[s.start_ + i];
         }
