@@ -1,11 +1,16 @@
 #pragma once
 
-#include <stdlib.h>
 #include <stdint.h>
 
+#include <sys/types.h>
+
 static_assert(sizeof(long long) == 8, "error: lom needs 64-bit `long long`");
-static_assert(sizeof(size_t) == 8 && sizeof(void *) == 8, "error: lom needs 64-bit pointer and `size_t`");
-static_assert(sizeof(float) == 4 && sizeof(double) == 8, "error: lom needs 32-bit `float` and 64-bit `double`");
+static_assert(
+    sizeof(void *) == 8 && sizeof(size_t) == 8 && sizeof(ssize_t) == 8,
+    "error: lom needs 64-bit pointer and `size_t` and `ssize_t`");
+static_assert(
+    sizeof(float) == 4 && sizeof(double) == 8,
+    "error: lom needs 32-bit `float` and 64-bit `double`");
 
 namespace lom
 {
@@ -27,6 +32,9 @@ static const int64_t
     kInt64Min = ~kInt64Max;
 
 static const size_t kSizeMax = ~(size_t)0;
+static const ssize_t
+    kSSizeMax = (ssize_t)(kSizeMax >> 1),
+    kSSizeMin = ~kSSizeMax;
 
 static const float
     kFloatMin = 0x1p-126F,

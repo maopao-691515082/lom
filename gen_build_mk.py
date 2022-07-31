@@ -27,7 +27,7 @@ mkf = open("Makefile", "w")
 print >> mkf, """
 .PHONY: all
 
-include ../Make.def
+include lom/Make.def
 
 all:"""
 
@@ -35,8 +35,8 @@ for d in dirs:
     print >> mkf, "\t@mkdir -p tmpobjs/%s" % d
 
 for f, o in zip(files, objs):
-    print >> mkf, "\t$(CXX) $(CXX_FLAGS) -I../include -c -o %s %s" % (o, f)
+    print >> mkf, "\t$(LOM_CXX) $(LOM_CXX_FLAGS) -Ilom/include -c -o %s %s" % (o, f)
 
-print >> mkf, "\tar -qs lom/lib/liblom.a %s" % " ".join(objs)
+print >> mkf, "\t$(LOM_AR) $(LOM_AR_FLAGS) lom/lib/liblom.a %s" % " ".join(objs)
 
 mkf.close()

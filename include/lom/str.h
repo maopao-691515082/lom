@@ -14,9 +14,9 @@
 namespace lom
 {
 
-static const size_t kStrLenMax = (((size_t)1) << 48) - 1;
+static const ssize_t kStrLenMax = (((ssize_t)1) << 48) - 1;
 
-static const char *const kSpaces = "\t\r\n\f\v\x20";
+static const char *const kSpaceBytes = "\t\r\n\f\v\x20";
 
 class Str;
 
@@ -28,16 +28,26 @@ class StrSlice
     uint16_t len_high_;
     uint32_t len_low_;
 
+    void FixIdx(ssize_t &idx, bool allow_end) const
+    {
+        auto len = Len();
+        if (idx < 0)
+        {
+            idx += len;
+        }
+        Assert(0 <= idx && idx <= (allow_end ? len : len - 1));
+    }
+
 public:
 
-    StrSlice(const char *p, size_t len, bool is_zero_end) : p_(p), is_zero_end_(is_zero_end)
+    StrSlice(const char *p, ssize_t len, bool is_zero_end) : p_(p), is_zero_end_(is_zero_end)
     {
-        Assert(len <= kStrLenMax);
+        Assert(0 <= len && len <= kStrLenMax && (!is_zero_end || p[len] == '\0'));
         len_high_ = len >> 32;
         len_low_ = len & kUInt32Max;
     }
 
-    StrSlice(const char *p, size_t len) : StrSlice(p, len, false)
+    StrSlice(const char *p, ssize_t len) : StrSlice(p, len, false)
     {
     }
 
@@ -45,11 +55,11 @@ public:
     {
     }
 
-    StrSlice(const char *s) : StrSlice(s, strlen(s), true)
+    StrSlice(const char *s) : StrSlice(s, (ssize_t)strlen(s), true)
     {
     }
 
-    StrSlice(const std::string &s) : StrSlice(s.c_str(), s.size(), true)
+    StrSlice(const std::string &s) : StrSlice(s.c_str(), (ssize_t)s.size(), true)
     {
     }
 
@@ -58,9 +68,15 @@ public:
         return p_;
     }
 
-    size_t Len() const
+    ssize_t Len() const
     {
-        return ((size_t)len_high_ << 32) + (size_t)len_low_;
+        return ((ssize_t)len_high_ << 32) + (ssize_t)len_low_;
+    }
+
+    char Get(ssize_t idx) const
+    {
+        FixIdx(idx, false);
+        return Data()[idx];
     }
 
     int Cmp(StrSlice s) const
@@ -82,29 +98,27 @@ public:
 
     bool CaseEq(StrSlice s) const;
 
-    StrSlice Slice(size_t start, size_t len) const
+    StrSlice Slice(ssize_t start, ssize_t len) const
     {
-        auto this_len = Len();
-        Assert(start <= this_len);
-        auto cap = this_len - start;
-        Assert(cap >= len);
+        FixIdx(start, true);
+        auto cap = Len() - start;
+        Assert(0 <= len && len <= cap);
         return StrSlice(Data() + start, len, cap == len ? is_zero_end_ : (Data()[start + len] == 0));
     }
-    StrSlice Slice(size_t start) const
+    StrSlice Slice(ssize_t start) const
     {
-        auto this_len = Len();
-        Assert(start <= this_len);
-        return StrSlice(Data() + start, this_len - start, is_zero_end_);
+        FixIdx(start, true);
+        return StrSlice(Data() + start, Len() - start, is_zero_end_);
     }
 
-    bool HasByte(uint8_t b) const
+    bool HasByte(unsigned char b) const
     {
         return memchr(Data(), b, Len());
     }
     bool HasPrefix(StrSlice s) const
     {
-        auto this_len = Len(), s_len = s.Len();
-        return this_len >= s_len && memcmp(Data(), s.Data(), s_len) == 0;
+        auto s_len = s.Len();
+        return Len() >= s_len && memcmp(Data(), s.Data(), s_len) == 0;
     }
     bool HasSuffix(StrSlice s) const
     {
@@ -112,25 +126,25 @@ public:
         return this_len >= s_len && memcmp(Data() + (this_len - s_len), s.Data(), s_len) == 0;
     }
 
-    StrSlice LTrim(StrSlice chs = kSpaces) const
+    StrSlice LTrim(StrSlice chs = kSpaceBytes) const
     {
-        size_t this_len = Len(), i = 0;
+        ssize_t this_len = Len(), i = 0;
         while (i < this_len && chs.HasByte(Data()[i]))
         {
             ++ i;
         }
         return Slice(i);
     }
-    StrSlice RTrim(StrSlice chs = kSpaces) const
+    StrSlice RTrim(StrSlice chs = kSpaceBytes) const
     {
-        size_t this_len = Len(), i = this_len;
-        while (i > 0 && chs.HasByte(Data()[i - 1]))
+        auto this_len = Len(), i = this_len - 1;
+        while (i >= 0 && chs.HasByte(Data()[i]))
         {
             -- i;
         }
-        return Slice(0, i);
+        return Slice(0, i + 1);
     }
-    StrSlice Trim(StrSlice chs = kSpaces) const
+    StrSlice Trim(StrSlice chs = kSpaceBytes) const
     {
         return LTrim(chs).RTrim(chs);
     }
@@ -143,7 +157,7 @@ public:
 
     Str Repr() const;
 
-    GoSlice<StrSlice> Split(StrSlice sep) const;
+    VecSlice<StrSlice> Split(StrSlice sep) const;
 };
 
 class Str
