@@ -1,10 +1,11 @@
 #pragma once
 
 #include <lom/mem.h>
-#include <lom/str.h>
 
 namespace lom
 {
+
+class Str;
 
 class Err : public RCObjDyn
 {

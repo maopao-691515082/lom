@@ -10,6 +10,7 @@
 #include <lom/util.h>
 #include <lom/limit.h>
 #include <lom/go_slice.h>
+#include <lom/err.h>
 
 namespace lom
 {
@@ -63,6 +64,8 @@ public:
     StrSlice(const std::string &s) : StrSlice(s.c_str(), (ssize_t)s.size(), true)
     {
     }
+
+    StrSlice(const Str &s);
 
     const char *Data() const
     {
@@ -194,26 +197,259 @@ public:
         return LTrim(chs).RTrim(chs);
     }
 
-    bool ParseInt64(int64_t &v, int base = 0) const;
-    bool ParseUInt64(uint64_t &v, int base = 0) const;
-    bool ParseFloat(float &v) const;
-    bool ParseDouble(double &v) const;
-    bool ParseLongDouble(long double &v) const;
+    Err::Ptr ParseInt64(int64_t &v, int base = 0) const;
+    Err::Ptr ParseUInt64(uint64_t &v, int base = 0) const;
+    Err::Ptr ParseFloat(float &v) const;
+    Err::Ptr ParseDouble(double &v) const;
+    Err::Ptr ParseLongDouble(long double &v) const;
 
-//    Str Repr() const;
+    Str Repr() const;
 
     GoSlice<StrSlice> Split(StrSlice sep) const;
 };
 
 class Str
 {
-    int8_t b_[16];
+    struct LongStr
+    {
+        std::atomic<int64_t> rc_;
+        const char *p_;
+
+        LongStr(const char *p) : rc_(1), p_(p)
+        {
+        }
+
+        ~LongStr()
+        {
+            delete[] p_;
+        }
+    };
+
+    int8_t ss_len_;
+    char ss_start_;
+    uint16_t ls_len_high_;
+    uint32_t ls_len_low_;
+    LongStr *lsp_;
+
+    bool IsLongStr() const
+    {
+        return ss_len_ < 0;
+    }
+
+    void Destruct() const
+    {
+        if (IsLongStr() && lsp_->rc_.fetch_add(-1) == 1)
+        {
+            delete lsp_;
+        }
+    }
+
+    void Assign(const Str &s)
+    {
+        if (s.IsLongStr())
+        {
+            s.lsp_->rc_.fetch_add(1);
+        }
+        memcpy(this, &s, sizeof(Str));
+    }
+
+    void MoveFrom(Str &&s)
+    {
+        memcpy(this, &s, sizeof(Str));
+        s.ss_len_ = 0;
+        s.ss_start_ = '\0';
+    }
 
 public:
 
-    Str()
+    Str(StrSlice s);
+
+    Str() : Str(StrSlice())
     {
-        memset(b_, 0, sizeof(b_));
+    }
+
+    Str(const char *s) : Str(StrSlice(s))
+    {
+    }
+
+    Str(const char *p, ssize_t len) : Str(StrSlice(p, len))
+    {
+    }
+
+    Str(const std::string &s) : Str(StrSlice(s))
+    {
+    }
+
+    Str(const Str &s)
+    {
+        Assign(s);
+    }
+
+    Str(Str &&s)
+    {
+        MoveFrom(std::move(s));
+    }
+
+    ~Str()
+    {
+        Destruct();
+    }
+
+    Str &operator=(StrSlice s)
+    {
+        Str tmp(s);
+        Destruct();
+        MoveFrom(std::move(tmp));
+        return *this;
+    }
+
+    Str &operator=(const char *s)
+    {
+        return operator=(StrSlice(s));
+    }
+
+    Str &operator=(const std::string &s)
+    {
+        return operator=(StrSlice(s));
+    }
+
+    Str &operator=(const Str &s)
+    {
+        if (this != &s)
+        {
+            Destruct();
+            Assign(s);
+        }
+        return *this;
+    }
+
+    Str &operator=(Str &&s)
+    {
+        if (this != &s)
+        {
+            Destruct();
+            MoveFrom(std::move(s));
+        }
+        return *this;
+    }
+
+    const char *Data() const
+    {
+        return IsLongStr() ? lsp_->p_ : &ss_start_;
+    }
+    ssize_t Len() const
+    {
+        return IsLongStr() ? ((ssize_t)ls_len_high_ << 32) + (ssize_t)ls_len_low_ : ss_len_;
+    }
+
+    StrSlice Slice() const
+    {
+        return StrSlice(*this);
+    }
+
+    char Get(ssize_t idx) const
+    {
+        return Slice().Get(idx);
+    }
+
+    int Cmp(StrSlice s) const
+    {
+        return Slice().Cmp(s);
+    }
+
+    bool operator<  (StrSlice s) const { return Cmp(s) <    0; }
+    bool operator<= (StrSlice s) const { return Cmp(s) <=   0; }
+    bool operator>  (StrSlice s) const { return Cmp(s) >    0; }
+    bool operator>= (StrSlice s) const { return Cmp(s) >=   0; }
+    bool operator== (StrSlice s) const { return Cmp(s) ==   0; }
+    bool operator!= (StrSlice s) const { return Cmp(s) !=   0; }
+
+    bool CaseEq(StrSlice s) const
+    {
+        return Slice().CaseEq(s);
+    }
+
+    ssize_t IndexByte(unsigned char b) const
+    {
+        return Slice().IndexByte(b);
+    }
+    ssize_t RIndexByte(unsigned char b) const
+    {
+        return Slice().RIndexByte(b);
+    }
+    bool ContainsByte(unsigned char b) const
+    {
+        return Slice().ContainsByte(b);
+    }
+
+    ssize_t Index(StrSlice s) const
+    {
+        return Slice().Index(s);
+    }
+    ssize_t RIndex(StrSlice s) const
+    {
+        return Slice().RIndex(s);
+    }
+    bool Contains(StrSlice s) const
+    {
+        return Slice().Contains(s);
+    }
+
+    bool HasPrefix(StrSlice s) const
+    {
+        return Slice().HasPrefix(s);
+    }
+    bool HasSuffix(StrSlice s) const
+    {
+        return Slice().HasSuffix(s);
+    }
+
+    Str LTrim(StrSlice chs = kSpaceBytes) const
+    {
+        return Slice().LTrim(chs);
+    }
+    Str RTrim(StrSlice chs = kSpaceBytes) const
+    {
+        return Slice().RTrim(chs);
+    }
+    Str Trim(StrSlice chs = kSpaceBytes) const
+    {
+        return Slice().Trim(chs);
+    }
+
+    Err::Ptr ParseInt64(int64_t &v, int base = 0) const
+    {
+        return Slice().ParseInt64(v, base);
+    }
+    Err::Ptr ParseUInt64(uint64_t &v, int base = 0) const
+    {
+        return Slice().ParseUInt64(v, base);
+    }
+    Err::Ptr ParseFloat(float &v) const
+    {
+        return Slice().ParseFloat(v);
+    }
+    Err::Ptr ParseDouble(double &v) const
+    {
+        return Slice().ParseDouble(v);
+    }
+    Err::Ptr ParseLongDouble(long double &v) const
+    {
+        return Slice().ParseLongDouble(v);
+    }
+
+    Str Repr() const
+    {
+        return Slice().Repr();
+    }
+
+    GoSlice<Str> Split(StrSlice sep) const
+    {
+        GoSlice<Str> gs;
+        Slice().Split(sep).Iter([&gs] (ssize_t idx, StrSlice &v) {
+            gs = gs.Append(v);
+        });
+        return gs;
     }
 };
 
