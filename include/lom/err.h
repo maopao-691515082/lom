@@ -6,11 +6,11 @@
 namespace lom
 {
 
-class Err : public SharedObjDynBase
+class Err : public RCObjDyn
 {
 public:
 
-    typedef SharedPtr<Err> Ptr;
+    typedef RCPtr<Err> Ptr;
 
     virtual Str Msg() const = 0;
 

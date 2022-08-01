@@ -3,7 +3,7 @@
 namespace lom
 {
 
-SharedObjDynBase::~SharedObjDynBase()
+RCObjDyn::~RCObjDyn()
 {
 }
 

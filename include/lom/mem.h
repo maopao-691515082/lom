@@ -5,26 +5,26 @@
 namespace lom
 {
 
-class SharedObj
+class RCObj
 {
     std::atomic<int64_t> rc_;
 
     template<class T>
-    friend class SharedPtr;
+    friend class RCPtr;
 
 protected:
 
-    SharedObj() : rc_(0)
+    RCObj() : rc_(0)
     {
     }
 
-    ~SharedObj()
+    ~RCObj()
     {
     }
 };
 
 template <class D>
-class DeleterOfSharedObjDerived
+class DeleterOfRCObjDerived
 {
     static void Delete(D *p)
     {
@@ -32,18 +32,18 @@ class DeleterOfSharedObjDerived
     }
 
     template<class T>
-    friend class SharedPtr;
+    friend class RCPtr;
 };
 
-class SharedObjDynBase : public SharedObj
+class RCObjDyn : public RCObj
 {
 public:
 
-    virtual ~SharedObjDynBase() = 0;
+    virtual ~RCObjDyn() = 0;
 };
 
 template <class T>
-class SharedPtr
+class RCPtr
 {
     T *p_;
 
@@ -51,7 +51,7 @@ class SharedPtr
     {
         if (p != nullptr)
         {
-            static_cast<SharedObj *>(p)->rc_.fetch_add(1);
+            static_cast<RCObj *>(p)->rc_.fetch_add(1);
         }
     }
 
@@ -64,9 +64,9 @@ class SharedPtr
     {
         if (p != nullptr)
         {
-            if (static_cast<SharedObj *>(p)->rc_.fetch_add(-1) == 1)
+            if (static_cast<RCObj *>(p)->rc_.fetch_add(-1) == 1)
             {
-                DeleterOfSharedObjDerived<T>::Delete(p);
+                DeleterOfRCObjDerived<T>::Delete(p);
             }
         }
     }
@@ -78,38 +78,38 @@ class SharedPtr
 
 public:
 
-    SharedPtr() : p_(nullptr)
+    RCPtr() : p_(nullptr)
     {
     }
 
-    SharedPtr(std::nullptr_t) : p_(nullptr)
+    RCPtr(std::nullptr_t) : p_(nullptr)
     {
     }
 
-    SharedPtr(T *p)
+    RCPtr(T *p)
     {
         IncRC(p);
         p_ = p;
     }
 
-    SharedPtr(const SharedPtr<T> &other)
+    RCPtr(const RCPtr<T> &other)
     {
         other.IncRC();
         p_ = other.p_;
     }
 
-    ~SharedPtr()
+    ~RCPtr()
     {
         DecRC();
     }
 
-    SharedPtr &operator=(std::nullptr_t)
+    RCPtr &operator=(std::nullptr_t)
     {
         Reset();
         return *this;
     }
 
-    SharedPtr &operator=(T *p)
+    RCPtr &operator=(T *p)
     {
         IncRC(p);
         DecRC();
@@ -117,7 +117,7 @@ public:
         return *this;
     }
 
-    SharedPtr &operator=(const SharedPtr<T> &other)
+    RCPtr &operator=(const RCPtr<T> &other)
     {
         other.IncRC();
         DecRC();
@@ -145,12 +145,12 @@ public:
         return p_ != nullptr;
     }
 
-    bool operator==(const SharedPtr<T> &other) const
+    bool operator==(const RCPtr<T> &other) const
     {
         return p_ == other.p_;
     }
 
-    bool operator!=(const SharedPtr<T> &other) const
+    bool operator!=(const RCPtr<T> &other) const
     {
         return p_ != other.p_;
     }
@@ -162,10 +162,10 @@ public:
 
     int64_t RC() const
     {
-        return p_ == nullptr ? 0 : static_cast<SharedObj *>(p_)->rc_.load();
+        return p_ == nullptr ? 0 : static_cast<RCObj *>(p_)->rc_.load();
     }
 
-    SharedPtr<T> Copy() const
+    RCPtr<T> Copy() const
     {
         return p_;
     }

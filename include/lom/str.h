@@ -14,7 +14,7 @@
 namespace lom
 {
 
-static const ssize_t kStrLenMax = (((ssize_t)1) << 48) - 1;
+static const ssize_t kStrLenMax = kSSizeSoftMax;
 
 static const char *const kSpaceBytes = "\t\r\n\f\v\x20";
 
@@ -119,8 +119,15 @@ public:
     }
     ssize_t RIndexByte(unsigned char b) const
     {
-        auto p = (const char *)memrchr(Data(), b, Len());
-        return p == nullptr ? -1 : p - Data();
+        auto data = Data();
+        for (ssize_t i = Len() - 1; i >= 0; -- i)
+        {
+            if ((unsigned char)data[i] == b)
+            {
+                return i;
+            }
+        }
+        return -1;
     }
     bool ContainsByte(unsigned char b) const
     {

@@ -44,4 +44,6 @@ static const double
     kDoubleMin = 0x1p-1022,
     kDoubleMax = 0x1.FFFFFFFFFFFFFp1023;
 
+static const ssize_t kSSizeSoftMax = ((ssize_t)1 << 48) - 1;
+
 }
