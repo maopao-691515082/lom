@@ -423,4 +423,73 @@ Err::Ptr StrSlice::Unhex(Str &s) const
     return nullptr;
 }
 
+template <typename T>
+Str StrSliceJoin(StrSlice s, GoSlice<T> gs)
+{
+    if (gs.Len() == 0)
+    {
+        return "";
+    }
+
+    auto s_data = s.Data();
+    auto s_len = s.Len();
+    ssize_t total_len = 0;
+    gs.Iter([&] (T &t) {
+        total_len += t.Len();
+    });
+    total_len += s_len * (gs.Len() - 1);
+    Str::Buf b(total_len);
+    auto p = b.Data();
+    gs.Iter([&] (ssize_t idx, T &t) {
+        if (idx > 0)
+        {
+            memcpy(p, s_data, s_len);
+            p += s_len;
+        }
+        auto t_len = t.Len();
+        memcpy(p, t.Data(), t_len);
+        p += t_len;
+    });
+    Assert(p == b.Data() + b.Len());
+    return Str(std::move(b));
+}
+
+Str StrSlice::Join(GoSlice<StrSlice> gs) const
+{
+    return StrSliceJoin(*this, gs);
+}
+Str StrSlice::Join(GoSlice<Str> gs) const
+{
+    return StrSliceJoin(*this, gs);
+}
+
+Str StrSlice::Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count) const
+{
+    auto a_len = a.Len();
+    Assert(a_len > 0);
+
+    auto s = *this;
+    Str::Buf b;
+    for (; max_count > 0; -- max_count)
+    {
+        auto pos = s.Index(a);
+        if (pos < 0)
+        {
+            break;
+        }
+        b.Append(s.Slice(0, pos));
+        b.Append(f());
+        s = s.Slice(pos + a_len);
+    }
+    b.Append(s);
+    return Str(std::move(b));
+}
+
+Str StrSlice::Replace(StrSlice a, StrSlice b, ssize_t max_count) const
+{
+    return Replace(a, [&] () -> StrSlice {
+        return b;
+    }, max_count);
+}
+
 }

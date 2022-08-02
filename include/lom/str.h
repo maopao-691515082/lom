@@ -213,7 +213,11 @@ public:
     Str Hex() const;
     Err::Ptr Unhex(Str &s) const;
 
-    //todo replace, join ...
+    Str Join(GoSlice<StrSlice> gs) const;
+    Str Join(GoSlice<Str> gs) const;
+
+    Str Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count = kStrLenMax) const;
+    Str Replace(StrSlice a, StrSlice b, ssize_t max_count = kStrLenMax) const;
 };
 
 class Str
@@ -579,6 +583,23 @@ public:
     Err::Ptr Unhex(Str &s) const
     {
         return Slice().Unhex(s);
+    }
+
+    Str Join(GoSlice<StrSlice> gs) const
+    {
+        return Slice().Join(gs);
+    }
+    Str Join(GoSlice<Str> gs) const
+    {
+        return Slice().Join(gs);
+    }
+    Str Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count = kStrLenMax) const
+    {
+        return Slice().Replace(a, f, max_count);
+    }
+    Str Replace(StrSlice a, StrSlice b, ssize_t max_count = kStrLenMax) const
+    {
+        return Slice().Replace(a, b, max_count);
     }
 };
 
