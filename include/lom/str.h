@@ -341,6 +341,10 @@ public:
     {
         return IsLongStr() ? ((ssize_t)ls_len_high_ << 32) + (ssize_t)ls_len_low_ : ss_len_;
     }
+    const char *CStr() const
+    {
+        return Data();
+    }
 
     StrSlice Slice() const
     {
@@ -548,5 +552,7 @@ public:
         return *this;
     }
 };
+
+Str Sprintf(const char *fmt, ...);
 
 }

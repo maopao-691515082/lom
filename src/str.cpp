@@ -262,4 +262,35 @@ void Str::MoveFrom(Buf &&buf)
     lsp_ = new LongStr(buf.p_);
 }
 
+Str Sprintf(const char *fmt, ...)
+{
+    static thread_local char buf[128];
+
+    int need_len;
+    {
+        va_list ap;
+        va_start(ap, fmt);
+        need_len = vsnprintf(buf, sizeof(buf), fmt, ap);
+        Assert(need_len >= 0);
+        va_end(ap);
+
+        if (need_len < (int)sizeof(buf))
+        {
+            return buf;
+        }
+    }
+
+    {
+        //Str::Buf has '\0' ending, so buf size is need_len+1, and vsnprintf will rewrite this ending
+        Str::Buf b(need_len);
+
+        va_list ap;
+        va_start(ap, fmt);
+        Assert(vsnprintf(b.Data(), (size_t)need_len + 1, fmt, ap) == need_len);
+        va_end(ap);
+
+        return Str(std::move(b));
+    }
+}
+
 }
