@@ -39,11 +39,11 @@ public:
 
     virtual Str Msg() const override
     {
-        return Str(); //todo
+        return Sprintf("%s: error at pos [%zd]: %s", func_name_, pos_, msg_);
     }
 };
 
-#define STR_SLICE_PARSE_NUM(_func_name, _str_to_raw_v) do {                         \
+#define LOM_STR_SLICE_PARSE_NUM(_func_name, _str_to_raw_v) do {                     \
     const char *p;                                                                  \
     std::string buf;                                                                \
     auto len = Len();                                                               \
@@ -77,27 +77,27 @@ public:
 
 Err::Ptr StrSlice::ParseInt64(int64_t &v, int base) const
 {
-    STR_SLICE_PARSE_NUM(ParseInt64, strtoll(p, (char **)&end_ptr, base));
+    LOM_STR_SLICE_PARSE_NUM(ParseInt64, strtoll(p, (char **)&end_ptr, base));
 }
 
 Err::Ptr StrSlice::ParseUInt64(uint64_t &v, int base) const
 {
-    STR_SLICE_PARSE_NUM(ParseUInt64, strtoull(p, (char **)&end_ptr, base));
+    LOM_STR_SLICE_PARSE_NUM(ParseUInt64, strtoull(p, (char **)&end_ptr, base));
 }
 
 Err::Ptr StrSlice::ParseFloat(float &v) const
 {
-    STR_SLICE_PARSE_NUM(ParseFloat, strtof(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(ParseFloat, strtof(p, (char **)&end_ptr));
 }
 
 Err::Ptr StrSlice::ParseDouble(double &v) const
 {
-    STR_SLICE_PARSE_NUM(ParseDouble, strtod(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(ParseDouble, strtod(p, (char **)&end_ptr));
 }
 
 Err::Ptr StrSlice::ParseLongDouble(long double &v) const
 {
-    STR_SLICE_PARSE_NUM(ParseLongDouble, strtold(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(ParseLongDouble, strtold(p, (char **)&end_ptr));
 }
 
 static const char *const kHexDigests = "0123456789ABCDEF";
@@ -291,6 +291,136 @@ Str Sprintf(const char *fmt, ...)
 
         return Str(std::move(b));
     }
+}
+
+Str Str::FromInt64(int64_t n)
+{
+    if (n == 0)
+    {
+        return "0";
+    }
+    if (n == kInt64Min)
+    {
+        return "-9223372036854775808";
+    }
+
+    bool is_neg = n < 0;
+    if (is_neg)
+    {
+        n = -n;
+    }
+    char buf[32];
+    char *p = &buf[31];
+    *p = '\0';
+    while (n > 0)
+    {
+        -- p;
+        *p = '0' + n % 10;
+        n /= 10;
+    }
+    if (is_neg)
+    {
+        -- p;
+        *p = '-';
+    }
+    return p;
+}
+
+Str Str::FromUInt64(uint64_t n)
+{
+    if (n == 0)
+    {
+        return "0";
+    }
+
+    char buf[32];
+    buf[31] = 0;
+    char *p = &buf[31];
+    *p = '\0';
+    while (n > 0)
+    {
+        -- p;
+        *p = '0' + n % 10;
+        n /= 10;
+    }
+    return p;
+}
+
+#define LOM_STR_SLICE_UOLER(_conv_ch) do {  \
+    auto data = Data();                     \
+    auto len = Len();                       \
+    Str::Buf b(len);                        \
+    auto p = b.Data();                      \
+    for (ssize_t i = 0; i < len; ++ i)      \
+    {                                       \
+        p[i] = _conv_ch(data[i]);           \
+    }                                       \
+    return Str(std::move(b));               \
+} while (false)
+
+Str StrSlice::Upper() const
+{
+    LOM_STR_SLICE_UOLER(toupper);
+}
+Str StrSlice::Lower() const
+{
+    LOM_STR_SLICE_UOLER(tolower);
+}
+
+Str StrSlice::Hex() const
+{
+    auto data = Data();
+    auto len = Len();
+    Str::Buf b(len * 2);
+    auto p = b.Data();
+    for (ssize_t i = 0; i < len; ++ i)
+    {
+        auto uc = (unsigned char)data[i];
+        p[i * 2] = kHexDigests[uc / 16];
+        p[i * 2 + 1] = kHexDigests[uc % 16];
+    }
+    return Str(std::move(b));
+}
+
+Err::Ptr StrSlice::Unhex(Str &s) const
+{
+    auto data = Data();
+    auto len = Len();
+    if (len % 2 != 0)
+    {
+        return Err::NewSimple("Unhex: odd length");
+    }
+    Str::Buf b(len / 2);
+    auto p = b.Data();
+
+    auto c_2_i = [] (char c) -> int {
+        if (c >= '0' && c <= '9')
+        {
+            return c - '0';
+        }
+        if (c >= 'A' && c <= 'F')
+        {
+            return c - 'A' + 10;
+        }
+        if (c >= 'a' && c <= 'f')
+        {
+            return c - 'a' + 10;
+        }
+        return -1;
+    };
+
+    for (ssize_t i = 0; i < len; i += 2)
+    {
+        int n1 = c_2_i(data[i]), n2 = c_2_i(data[i + 1]);
+        if (n1 < 0 || n2 < 0)
+        {
+            return Err::NewSimple(Sprintf("Unhex: invalid digit at pos [%zd]", n1 < 0 ? i : i + 1));
+        }
+        *(unsigned char *)&p[i / 2] = n1 * 16 + n2;
+    }
+
+    s = std::move(b);
+    return nullptr;
 }
 
 }

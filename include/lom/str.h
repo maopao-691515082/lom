@@ -206,6 +206,14 @@ public:
     Str Repr() const;
 
     GoSlice<StrSlice> Split(StrSlice sep) const;
+
+    Str Upper() const;
+    Str Lower() const;
+
+    Str Hex() const;
+    Err::Ptr Unhex(Str &s) const;
+
+    //todo replace, join ...
 };
 
 class Str
@@ -550,6 +558,27 @@ public:
         Destruct();
         MoveFrom(std::move(buf));
         return *this;
+    }
+
+    static Str FromInt64(int64_t n);
+    static Str FromUInt64(uint64_t n);
+
+    Str Upper() const
+    {
+        return Slice().Upper();
+    }
+    Str Lower() const
+    {
+        return Slice().Lower();
+    }
+
+    Str Hex() const
+    {
+        return Slice().Hex();
+    }
+    Err::Ptr Unhex(Str &s) const
+    {
+        return Slice().Unhex(s);
     }
 };
 
