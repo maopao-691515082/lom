@@ -238,6 +238,31 @@ public:
         }
         return *this;
     }
+
+    GoSlice<T> Iter(std::function<void (T &)> f) const
+    {
+        return Iter([&] (ssize_t idx, T &t) {
+            f(t);
+        });
+    }
+
+    template <typename MT>
+    GoSlice<MT> Map(std::function<MT (const T &)> f)
+    {
+        GoSlice<MT> gs(Len());
+        Iter([&] (ssize_t idx, T &t) {
+            gs.Set(idx, f(t));
+        });
+        return gs;
+    }
+
+    template <typename MT>
+    GoSlice<MT> Map()
+    {
+        return Map<MT>([] (const T &t) -> MT {
+            return MT(t);
+        });
+    }
 };
 
 }

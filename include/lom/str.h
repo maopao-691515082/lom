@@ -445,11 +445,107 @@ public:
 
     GoSlice<Str> Split(StrSlice sep) const
     {
-        GoSlice<Str> gs;
-        Slice().Split(sep).Iter([&gs] (ssize_t idx, StrSlice &v) {
-            gs = gs.Append(v);
-        });
-        return gs;
+        return Slice().Split(sep).Map<Str>();
+    }
+
+    class Buf
+    {
+        char *p_;
+        ssize_t len_;
+        ssize_t cap_;
+
+        friend class Str;
+
+        Buf(const Buf &) = delete;
+        Buf &operator=(const Buf &) = delete;
+
+        void Construct(ssize_t len, ssize_t cap)
+        {
+            Assert(0 <= len && len <= cap && cap <= kStrLenMax);
+            p_ = (char *)malloc(cap + 1);
+            Assert(p_ != nullptr);
+            p_[len] = '\0';
+            len_ = len;
+            cap_ = cap;
+        }
+
+        void Construct()
+        {
+            Construct(0, 16);
+        }
+
+    public:
+
+        Buf()
+        {
+            Construct();
+        }
+
+        Buf(ssize_t len, ssize_t cap)
+        {
+            Construct(len, cap);
+        }
+
+        Buf(ssize_t len) : Buf(len, len)
+        {
+        }
+
+        ~Buf()
+        {
+            free(p_);
+        }
+
+        char *Data() const
+        {
+            return p_;
+        }
+
+        ssize_t Len() const
+        {
+            return len_;
+        }
+
+        void FitLen(ssize_t len);
+
+        void Write(ssize_t offset, const char *p, ssize_t len)
+        {
+            Assert(0 <= offset && offset <= len_ && 0 <= len && len <= kStrLenMax - offset);
+            FitLen(offset + len);
+            memcpy(p_ + offset, p, len);
+        }
+
+        void Write(ssize_t offset, StrSlice s)
+        {
+            Write(offset, s.Data(), s.Len());
+        }
+
+        void Append(const char *p, ssize_t len)
+        {
+            Write(len_, p, len);
+        }
+
+        void Append(StrSlice s)
+        {
+            Write(len_, s);
+        }
+    };
+
+private:
+
+    void MoveFrom(Buf &&buf);
+
+public:
+
+    Str(Buf &&buf)
+    {
+        MoveFrom(std::move(buf));
+    }
+
+    Str &operator=(Buf &&buf)
+    {
+        Destruct();
+        MoveFrom(std::move(buf));
+        return *this;
     }
 };
 

@@ -100,12 +100,60 @@ Err::Ptr StrSlice::ParseLongDouble(long double &v) const
     STR_SLICE_PARSE_NUM(ParseLongDouble, strtold(p, (char **)&end_ptr));
 }
 
-/*
+static const char *const kHexDigests = "0123456789ABCDEF";
+
 Str StrSlice::Repr() const
 {
-    //todo
+    Str::Buf b;
+    b.Append("'");
+
+    auto data = Data();
+    auto len = Len();
+    for (ssize_t i = 0; i < len; ++ i)
+    {
+        char c = data[i];
+        switch (c)
+        {
+
+#define LOM_CASE_ESC_CHAR(_c, _s) case _c: {    \
+    b.Append(_s);                               \
+    break;                                      \
 }
-*/
+
+            LOM_CASE_ESC_CHAR('\\', "\\\\");
+            LOM_CASE_ESC_CHAR('\'', "\\'");
+            LOM_CASE_ESC_CHAR('\a', "\\a");
+            LOM_CASE_ESC_CHAR('\b', "\\b");
+            LOM_CASE_ESC_CHAR('\f', "\\f");
+            LOM_CASE_ESC_CHAR('\n', "\\n");
+            LOM_CASE_ESC_CHAR('\r', "\\r");
+            LOM_CASE_ESC_CHAR('\t', "\\t");
+            LOM_CASE_ESC_CHAR('\v', "\\v");
+
+#undef LOM_CASE_ESC_CHAR
+
+            default:
+            {
+                if (c >= 0x20 && c <= 0x7E)
+                {
+                    b.Append(&c, 1);
+                }
+                else
+                {
+                    auto uc = (unsigned char)c;
+                    b.Append("\\x");
+                    b.Append(&kHexDigests[uc / 16], 1);
+                    b.Append(&kHexDigests[uc % 16], 1);
+                }
+                break;
+            }
+        }
+    }
+
+    b.Append("'");
+
+    return Str(std::move(b));
+}
 
 GoSlice<StrSlice> StrSlice::Split(StrSlice sep) const
 {
@@ -149,10 +197,10 @@ GoSlice<StrSlice> StrSlice::Split(StrSlice sep) const
     return gs;
 }
 
+static const ssize_t kShortStrLenMax = sizeof(Str) - 2; //1-byte len + 1-byte nul end
+
 Str::Str(StrSlice s)
 {
-    static const ssize_t kShortStrLenMax = sizeof(Str) - 2; //1-byte len + 1-byte nul end
-
     auto data = s.Data();
     auto len = s.Len();
 
@@ -172,6 +220,46 @@ Str::Str(StrSlice s)
     memcpy(p, data, len);
     p[len] = '\0';
     lsp_ = new LongStr(p);
+}
+
+void Str::Buf::FitLen(ssize_t len)
+{
+    Assert(0 <= len && len <= kStrLenMax);
+    if (len > len_)
+    {
+        if (len > cap_)
+        {
+            while (cap_ < len)
+            {
+                cap_ += cap_ / 2 + 1;
+            }
+            p_ = (char *)realloc(p_, cap_ + 1);
+            Assert(p_ != nullptr);
+        }
+        p_[len] = '\0';
+        len_ = len;
+    }
+}
+
+void Str::MoveFrom(Buf &&buf)
+{
+    Assert(buf.p_[buf.len_] == '\0');
+    Defer defer_reconstruct_buf([&buf] () {
+        buf.Construct();
+    });
+
+    if (buf.len_ <= kShortStrLenMax)
+    {
+        ss_len_ = buf.len_;
+        char *ss = &ss_start_;
+        memcpy(ss, buf.p_, buf.len_ + 1);
+        return;
+    }
+
+    ss_len_ = -1;
+    ls_len_high_ = buf.len_ >> 32;
+    ls_len_low_ = buf.len_ & kUInt32Max;
+    lsp_ = new LongStr(buf.p_);
 }
 
 }
