@@ -31,4 +31,14 @@ static inline void Assert(bool cond)
     }
 }
 
+//不推荐直接使用_Die，用宏LOM_DIE
+void _Die(const char *file_name, int line, const char *fmt, ...);
+
 }
+
+/*
+打印错误信息并通过SIGKILL立即退出进程
+注意不是普通exit，不会执行语言级别的收尾工作，主要是为了避免全局变量析构顺序的不确定导致的问题
+如果需要收尾，请自行实现exit
+*/
+#define LOM_DIE(_fmt, _args...) ::lom::_Die(__FILE__, __LINE__, _fmt, ##_args)

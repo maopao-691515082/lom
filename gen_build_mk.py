@@ -24,19 +24,22 @@ for i, f in enumerate(files):
     files[i] = "../src/" + f
 
 mkf = open("Makefile", "w")
-print >> mkf, """
+def write_line(line):
+    mkf.write(line)
+    mkf.write("\n")
+write_line("""
 .PHONY: all
 
 include lom/Make.def
 
-all:"""
+all:""")
 
 for d in dirs:
-    print >> mkf, "\t@mkdir -p tmpobjs/%s" % d
+    write_line("\t@mkdir -p tmpobjs/%s" % d)
 
 for f, o in zip(files, objs):
-    print >> mkf, "\t$(LOM_CXX) $(LOM_CXX_FLAGS) -Ilom/include -c -o %s %s" % (o, f)
+    write_line("\t$(LOM_CXX) $(LOM_CXX_FLAGS) -Ilom/include -c -o %s %s" % (o, f))
 
-print >> mkf, "\t$(LOM_AR) $(LOM_AR_FLAGS) lom/lib/liblom.a %s" % " ".join(objs)
+write_line("\t$(LOM_AR) $(LOM_AR_FLAGS) lom/lib/liblom.a %s" % " ".join(objs))
 
 mkf.close()

@@ -6,7 +6,7 @@ all:
 	@cp -r include build/lom/include
 	@rm -rf build/lom/Make.def
 	@cp Make.def build/lom/Make.def
-	@python2 gen_build_mk.py
+	@python gen_build_mk.py
 	@make -C build all
 
 clean:
