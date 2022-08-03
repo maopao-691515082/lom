@@ -6,3 +6,7 @@
 #include <lom/str.h>
 #include <lom/go_slice.h>
 #include <lom/util.h>
+
+#include <lom/immut/avl_util.h>
+#include <lom/immut/avl.h>
+#include <lom/immut/avl_ds.h>

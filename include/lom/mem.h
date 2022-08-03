@@ -35,13 +35,6 @@ class DeleterOfRCObjDerived
     friend class RCPtr;
 };
 
-class RCObjDyn : public RCObj
-{
-public:
-
-    virtual ~RCObjDyn() = 0;
-};
-
 template <class T>
 class RCPtr
 {
@@ -174,6 +167,19 @@ public:
     {
         DecRC();
         p_ = nullptr;
+    }
+};
+
+class RCObjDyn : public RCObj
+{
+public:
+
+    virtual ~RCObjDyn() = 0;
+
+    template <typename T>
+    RCPtr<T> DynCast()
+    {
+        return dynamic_cast<T *>(this);
     }
 };
 

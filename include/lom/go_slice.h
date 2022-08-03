@@ -164,6 +164,10 @@ public:
     {
         return At(idx);
     }
+    const T &GetCRef(ssize_t idx) const
+    {
+        return At(idx);
+    }
 
     GoSlice<T> Set(ssize_t idx, const T &t) const
     {
