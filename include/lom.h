@@ -15,4 +15,6 @@
 #include <lom/immut/avl_util.h>
 #include <lom/immut/avl.h>
 
+#include <lom/io/io.h>
+
 #include <lom/math/prime.h>

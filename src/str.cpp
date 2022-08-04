@@ -492,4 +492,18 @@ Str StrSlice::Replace(StrSlice a, StrSlice b, ssize_t max_count) const
     }, max_count);
 }
 
+GoSlice<Str> Str::Split(StrSlice sep) const
+{
+    return Slice().Split(sep).Map<Str>();
+}
+
+Str Str::Join(GoSlice<StrSlice> gs) const
+{
+    return Slice().Join(gs);
+}
+Str Str::Join(GoSlice<Str> gs) const
+{
+    return Slice().Join(gs);
+}
+
 }

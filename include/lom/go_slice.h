@@ -4,10 +4,12 @@
 #include <initializer_list>
 #include <utility>
 #include <functional>
+#include <type_traits>
 
 #include <lom/mem.h>
 #include <lom/util.h>
 #include <lom/limit.h>
+#include <lom/str.h>
 
 namespace lom
 {
@@ -191,6 +193,11 @@ public:
     {
         auto this_len = FixIdx(start, true);
         return GoSlice<T>(a_, start_ + start, this_len - start);
+    }
+
+    ::lom::StrSlice StrSlice() const
+    {
+        return a_ ? ::lom::StrSlice(&a_->a_[start_], Len()) : ::lom::StrSlice();
     }
 
     GoSlice<T> Append(const T &t) const

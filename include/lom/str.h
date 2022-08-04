@@ -9,7 +9,6 @@
 
 #include <lom/util.h>
 #include <lom/limit.h>
-#include <lom/go_slice.h>
 #include <lom/err.h>
 
 namespace lom
@@ -18,6 +17,9 @@ namespace lom
 static const ssize_t kStrLenMax = kSSizeSoftMax;
 
 static const char *const kSpaceBytes = "\t\r\n\f\v\x20";
+
+template <typename T>
+class GoSlice;
 
 class Str;
 
@@ -459,10 +461,7 @@ public:
         return Slice().Repr();
     }
 
-    GoSlice<Str> Split(StrSlice sep) const
-    {
-        return Slice().Split(sep).Map<Str>();
-    }
+    GoSlice<Str> Split(StrSlice sep) const;
 
     class Buf
     {
@@ -585,14 +584,9 @@ public:
         return Slice().Unhex(s);
     }
 
-    Str Join(GoSlice<StrSlice> gs) const
-    {
-        return Slice().Join(gs);
-    }
-    Str Join(GoSlice<Str> gs) const
-    {
-        return Slice().Join(gs);
-    }
+    Str Join(GoSlice<StrSlice> gs) const;
+    Str Join(GoSlice<Str> gs) const;
+
     Str Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count = kStrLenMax) const
     {
         return Slice().Replace(a, f, max_count);
