@@ -2,6 +2,7 @@
 
 #include <list>
 #include <map>
+#include <type_traits>
 
 #include <lom/limit.h>
 #include <lom/util.h>
@@ -12,8 +13,8 @@ namespace lom
 /*
 简易lru-cache
 K需要实现operator<比较方法并保证全序性（因为用的STL的map）
-V可以实现Size()方法来决定每个元素占用的实际大小，返回类型需要是ssize_t或可无损转为ssize_t类型，
-调用者保证返回的合法性（转ssize_t后>0且累加不会溢出ssize_t），若V没有实现Size()方法，则每个V的大小默认为1，
+V可以实现Size()方法来决定每个元素占用的实际大小，返回类型需要是ssize_t，
+调用者保证返回的合法性（>0且累加不会溢出ssize_t），若V没有实现Size()方法，则每个V的大小默认为1，
 LRUCache的大小计算和淘汰按所有元素的大小的和计算
 */
 template <typename K, typename V>
@@ -30,7 +31,13 @@ class LRUCache
     LRUCache(const LRUCache &) = delete;
     LRUCache &operator=(const LRUCache &) = delete;
 
-    template <typename VT, typename SizeT = decltype(((VT *)nullptr)->Size())>
+    template <
+        typename VT,
+        typename = typename std::enable_if<std::is_same<
+            decltype(((VT *)nullptr)->Size()),
+            ssize_t
+        >::value>::type
+    >
     static ssize_t VSize(const VT &v)
     {
         ssize_t v_sz = v.Size();
