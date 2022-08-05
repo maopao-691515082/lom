@@ -262,37 +262,6 @@ void Str::MoveFrom(Buf &&buf)
     lsp_ = new LongStr(buf.p_);
 }
 
-Str Sprintf(const char *fmt, ...)
-{
-    static thread_local char buf[128];
-
-    int need_len;
-    {
-        va_list ap;
-        va_start(ap, fmt);
-        need_len = vsnprintf(buf, sizeof(buf), fmt, ap);
-        Assert(need_len >= 0);
-        va_end(ap);
-
-        if (need_len < (int)sizeof(buf))
-        {
-            return buf;
-        }
-    }
-
-    {
-        //Str::Buf has '\0' ending, so buf size is need_len+1, and vsnprintf will rewrite this ending
-        Str::Buf b(need_len);
-
-        va_list ap;
-        va_start(ap, fmt);
-        Assert(vsnprintf(b.Data(), (size_t)need_len + 1, fmt, ap) == need_len);
-        va_end(ap);
-
-        return Str(std::move(b));
-    }
-}
-
 Str Str::FromInt64(int64_t n)
 {
     if (n == 0)
@@ -504,6 +473,183 @@ Str Str::Join(GoSlice<StrSlice> gs) const
 Str Str::Join(GoSlice<Str> gs) const
 {
     return Slice().Join(gs);
+}
+
+void _StrFmter::SprintfOne(std::string &s, std::type_index arg_ptr_ti, const char *fmt, ...)
+{
+    auto fmt_len = strlen(fmt);
+    Assert(*fmt == '%' && fmt_len >= 2);
+    switch (fmt[fmt_len - 1])
+    {
+        case 's':
+        {
+            std::type_index expecting_ti(
+                fmt_len >= 3 && fmt[fmt_len - 2] == 'l' ?
+                typeid(const wchar_t *const *) : typeid(const char *const *)
+            );
+            if (arg_ptr_ti != expecting_ti)
+            {
+                s.append("%!(BAD-STRING-ARG)");
+                return;
+            }
+            break;
+        }
+
+        case 'n':
+        {
+            std::type_index expecting_ti(typeid(int *const *));
+            if (fmt_len >= 3)
+            {
+                char c = fmt[fmt_len - 2];
+                switch (c)
+                {
+                    case 'h':
+                    case 'l':
+                    {
+                        if (fmt_len >= 4 && fmt[fmt_len - 3] == c)
+                        {
+                            //hh or ll
+                            expecting_ti =
+                                c == 'h' ? typeid(signed char *const *) : typeid(long long *const *);
+                        }
+                        else
+                        {
+                            expecting_ti = c == 'h' ? typeid(short *const *) : typeid(long *const *);
+                        }
+                        break;
+                    }
+                    case 'j':
+                    {
+                        expecting_ti = typeid(intmax_t *const *);
+                        break;
+                    }
+                    case 'z':
+                    {
+                        expecting_ti = typeid(ssize_t *const *);
+                        break;
+                    }
+                    case 't':
+                    {
+                        expecting_ti = typeid(ptrdiff_t *const *);
+                        break;
+                    }
+                }
+            }
+            if (arg_ptr_ti != expecting_ti)
+            {
+                s.append("%!(BAD-CHAR-COUNT-RECORDER-ARG)");
+                return;
+            }
+            break;
+        }
+    }
+
+    char buf[128];
+
+    int need_len;
+    {
+        va_list ap;
+        va_start(ap, fmt);
+        need_len = vsnprintf(buf, sizeof(buf), fmt, ap);
+        Assert(need_len >= 0);
+        va_end(ap);
+
+        if (need_len < (int)sizeof(buf))
+        {
+            s = buf;
+            return;
+        }
+    }
+
+    {
+        s.resize(need_len + 1); //include space of '\0'
+
+        va_list ap;
+        va_start(ap, fmt);
+        Assert(vsnprintf(&s[0], s.size(), fmt, ap) == need_len);
+        va_end(ap);
+    }
+}
+
+void _StrFmter::Sprintf(Str &result, const char *fmt, const std::vector<_StrFmter::FmtArg> &fas)
+{
+    Str::Buf b;
+    Defer defer_set_result([&] () {
+        result = std::move(b);
+    });
+
+    size_t fa_idx = 0;
+    while (*fmt != '\0')
+    {
+        const char *p = strchr(fmt, '%');
+        if (p == nullptr)
+        {
+            b.Append(fmt);
+            if (fa_idx < fas.size())
+            {
+                b.Append("%!(EXTRA)");
+            }
+            return;
+        }
+        b.Append(fmt, (ssize_t)(p - fmt));
+        fmt = p;
+        ++ p;
+        size_t star_count = 0;
+        while (*p != '\0' && strchr("%csdioxXufFeEaAgGnp", *p) == nullptr)
+        {
+            if (*p == '*')
+            {
+                ++ star_count;
+            }
+            ++ p;
+        }
+        if (*p == '\0' || (*p == '%' && p != fmt + 1) || star_count > 2)
+        {
+            b.Append("%!(BAD-FMT)...");
+            return;
+        }
+        if (*p == '%')
+        {
+            b.Append("%");
+            fmt = p + 1;
+            continue;
+        }
+        if (fas.size() - fa_idx < star_count + 1)
+        {
+            b.Append("%!(MISSING)...");
+            return;
+        }
+        Str fmt_for_one(fmt, (ssize_t)(p + 1 - fmt));
+        fmt = p + 1;
+        int wp[2];
+        for (size_t i = 0; i < star_count; ++ i)
+        {
+            auto fa = fas.at(fa_idx);
+            ++ fa_idx;
+            if (!fa.is_int_)
+            {
+                b.Append("%!(BAD-WIDTH.PREC)...");
+                return;
+            }
+            wp[i] = fa.as_int_;
+        }
+        auto fa = fas.at(fa_idx);
+        ++ fa_idx;
+        std::string s;
+        if (star_count == 2)
+        {
+            fa.sprintf_2_(s, fmt_for_one.CStr(), wp[0], wp[1]);
+        }
+        else if (star_count == 1)
+        {
+            fa.sprintf_1_(s, fmt_for_one.CStr(), wp[0]);
+        }
+        else
+        {
+            fa.sprintf_(s, fmt_for_one.CStr());
+        }
+        b.Append(s.c_str());
+    }
 }
 
 }

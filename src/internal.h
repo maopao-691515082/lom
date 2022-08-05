@@ -6,6 +6,7 @@
 #include <time.h>
 #include <math.h>
 #include <signal.h>
+#include <stddef.h>
 
 #include <sys/time.h>
 #include <unistd.h>
