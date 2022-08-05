@@ -494,54 +494,6 @@ void _StrFmter::SprintfOne(std::string &s, std::type_index arg_ptr_ti, const cha
             }
             break;
         }
-
-        case 'n':
-        {
-            std::type_index expecting_ti(typeid(int *const *));
-            if (fmt_len >= 3)
-            {
-                char c = fmt[fmt_len - 2];
-                switch (c)
-                {
-                    case 'h':
-                    case 'l':
-                    {
-                        if (fmt_len >= 4 && fmt[fmt_len - 3] == c)
-                        {
-                            //hh or ll
-                            expecting_ti =
-                                c == 'h' ? typeid(signed char *const *) : typeid(long long *const *);
-                        }
-                        else
-                        {
-                            expecting_ti = c == 'h' ? typeid(short *const *) : typeid(long *const *);
-                        }
-                        break;
-                    }
-                    case 'j':
-                    {
-                        expecting_ti = typeid(intmax_t *const *);
-                        break;
-                    }
-                    case 'z':
-                    {
-                        expecting_ti = typeid(ssize_t *const *);
-                        break;
-                    }
-                    case 't':
-                    {
-                        expecting_ti = typeid(ptrdiff_t *const *);
-                        break;
-                    }
-                }
-            }
-            if (arg_ptr_ti != expecting_ti)
-            {
-                s.append("%!(BAD-CHAR-COUNT-RECORDER-ARG)");
-                return;
-            }
-            break;
-        }
     }
 
     char buf[128];
