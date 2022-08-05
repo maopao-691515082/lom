@@ -620,6 +620,7 @@ void _StrFmter::Sprintf(Str &result, const char *fmt, const std::vector<_StrFmte
             return;
         }
         Str fmt_for_one(fmt, (ssize_t)(p + 1 - fmt));
+        Assert(fmt_for_one.Len() >= 2 && fmt_for_one.Get(0) == '%');
         fmt = p + 1;
         int wp[2];
         for (size_t i = 0; i < star_count; ++ i)
@@ -635,20 +636,34 @@ void _StrFmter::Sprintf(Str &result, const char *fmt, const std::vector<_StrFmte
         }
         auto fa = fas.at(fa_idx);
         ++ fa_idx;
-        std::string s;
-        if (star_count == 2)
+        if (fmt_for_one.Get(-1) == 'n')
         {
-            fa.sprintf_2_(s, fmt_for_one.CStr(), wp[0], wp[1]);
-        }
-        else if (star_count == 1)
-        {
-            fa.sprintf_1_(s, fmt_for_one.CStr(), wp[0]);
+            if (fa.set_char_count_)
+            {
+                fa.set_char_count_(b.Len());
+            }
+            else
+            {
+                b.Append("%!(BAD-CHAR-COUNT-RECVER-ARG)");
+            }
         }
         else
         {
-            fa.sprintf_(s, fmt_for_one.CStr());
+            std::string s;
+            if (star_count == 2)
+            {
+                fa.sprintf_2_(s, fmt_for_one.CStr(), wp[0], wp[1]);
+            }
+            else if (star_count == 1)
+            {
+                fa.sprintf_1_(s, fmt_for_one.CStr(), wp[0]);
+            }
+            else
+            {
+                fa.sprintf_(s, fmt_for_one.CStr());
+            }
+            b.Append(s.c_str());
         }
-        b.Append(s.c_str());
     }
 }
 

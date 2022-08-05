@@ -610,25 +610,26 @@ class _StrFmter
         std::function<void (std::string &, const char *)> sprintf_;
         std::function<void (std::string &, const char *, int)> sprintf_1_;
         std::function<void (std::string &, const char *, int, int)> sprintf_2_;
+        std::function<void (ssize_t)> set_char_count_;
         bool is_int_ = false;
         int as_int_ = 0;
 
-#define _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(_tp, _arg) do {               \
+#define _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(_tp_or_expr, _arg) do {       \
         sprintf_ = [p] (std::string &s, const char *fmt) {                      \
-            SprintfOne(s, typeid(_tp), fmt, (_arg));                            \
+            SprintfOne(s, typeid(_tp_or_expr), fmt, (_arg));                    \
         };                                                                      \
         sprintf_1_ = [p] (std::string &s, const char *fmt, int wp1) {           \
-            SprintfOne(s, typeid(_tp), fmt, wp1, (_arg));                       \
+            SprintfOne(s, typeid(_tp_or_expr), fmt, wp1, (_arg));               \
         };                                                                      \
         sprintf_2_ = [p] (std::string &s, const char *fmt, int wp1, int wp2) {  \
-            SprintfOne(s, typeid(_tp), fmt, wp1, wp2, (_arg));                  \
+            SprintfOne(s, typeid(_tp_or_expr), fmt, wp1, wp2, (_arg));          \
         };                                                                      \
     } while (false)
 
         template <typename Arg>
         FmtArg(const Arg *p)
         {
-            _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(const Arg *, *p);
+            _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(p, *p);
         }
 
         template <size_t N>
@@ -651,6 +652,22 @@ class _StrFmter
         {
             _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(const char *const *, p->CStr());
         }
+
+#define _LOM_STR_FMTER_INIT_FMT_ARG_CONSTRUCTOR_WITH_SET_CHAR_COUNT_FUNC(_int_type) \
+    FmtArg(_int_type *const *p) { \
+        _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(p, *p); \
+        set_char_count_ = [p] (ssize_t count) { \
+            **p = count; \
+        }; \
+    }
+
+        _LOM_STR_FMTER_INIT_FMT_ARG_CONSTRUCTOR_WITH_SET_CHAR_COUNT_FUNC(signed char)
+        _LOM_STR_FMTER_INIT_FMT_ARG_CONSTRUCTOR_WITH_SET_CHAR_COUNT_FUNC(short)
+        _LOM_STR_FMTER_INIT_FMT_ARG_CONSTRUCTOR_WITH_SET_CHAR_COUNT_FUNC(int)
+        _LOM_STR_FMTER_INIT_FMT_ARG_CONSTRUCTOR_WITH_SET_CHAR_COUNT_FUNC(long)
+        _LOM_STR_FMTER_INIT_FMT_ARG_CONSTRUCTOR_WITH_SET_CHAR_COUNT_FUNC(long long)
+
+#undef _LOM_STR_FMTER_INIT_FMT_ARG_CONSTRUCTOR_WITH_SET_CHAR_COUNT_FUNC
 
 #undef _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS
 
