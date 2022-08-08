@@ -631,42 +631,48 @@ class _StrFmter
         {
         }
 
-#define _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(_tp_or_expr, _arg) do {       \
-        sprintf_ = [p] (std::string &s, const char *fmt) {                      \
-            SprintfOne(s, typeid(_tp_or_expr), fmt, (_arg));                    \
-        };                                                                      \
-        sprintf_1_ = [p] (std::string &s, const char *fmt, int wp1) {           \
-            SprintfOne(s, typeid(_tp_or_expr), fmt, wp1, (_arg));               \
-        };                                                                      \
-        sprintf_2_ = [p] (std::string &s, const char *fmt, int wp1, int wp2) {  \
-            SprintfOne(s, typeid(_tp_or_expr), fmt, wp1, wp2, (_arg));          \
-        };                                                                      \
-    } while (false)
-
         template <typename Arg>
         FmtArg(const Arg *p)
         {
-            _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(p, *p);
+            sprintf_ = [p] (std::string &s, const char *fmt) {
+                SprintfOne(s, typeid(p), fmt, *p);
+            };
+            sprintf_1_ = [p] (std::string &s, const char *fmt, int wp1) {
+                SprintfOne(s, typeid(p), fmt, wp1, *p);
+            };
+            sprintf_2_ = [p] (std::string &s, const char *fmt, int wp1, int wp2) {
+                SprintfOne(s, typeid(p), fmt, wp1, wp2, *p);
+            };
+
             SetAsInt(p);
+        }
+
+        void SetCStrSprintfs(const char *cs)
+        {
+            sprintf_ = [cs] (std::string &s, const char *fmt) {
+                SprintfOne(s, typeid(const char *const *), fmt, cs);
+            };
+            sprintf_1_ = [cs] (std::string &s, const char *fmt, int wp1) {
+                SprintfOne(s, typeid(const char *const *), fmt, wp1, cs);
+            };
+            sprintf_2_ = [cs] (std::string &s, const char *fmt, int wp1, int wp2) {
+                SprintfOne(s, typeid(const char *const *), fmt, wp1, wp2, cs);
+            };
         }
 
         template <size_t N>
         FmtArg(const char (*p)[N])
         {
-            _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(const char *const *, (const char *)*p);
+            SetCStrSprintfs(*p);
         }
-
         FmtArg(const std::string *p)
         {
-            _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(const char *const *, p->c_str());
+            SetCStrSprintfs(p->c_str());
         }
         FmtArg(const Str *p)
         {
-            _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS(const char *const *, p->CStr());
+            SetCStrSprintfs(p->CStr());
         }
-
-#undef _LOM_STR_FMTER_INIT_FMT_ARG_SPRINTF_FUNCS
-
     };
 
     static void Sprintf(Str &result, const char *fmt, const std::vector<FmtArg> &fas);
