@@ -4,6 +4,10 @@
 
 #include <sys/types.h>
 
+#ifndef __GNUC__
+#   error error: lom needs GNU std
+#endif
+
 static_assert(sizeof(long long) == 8, "error: lom needs 64-bit `long long`");
 static_assert(
     sizeof(void *) == 8 && sizeof(size_t) == 8 && sizeof(ssize_t) == 8,

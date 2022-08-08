@@ -6,11 +6,6 @@
 
 #include <string>
 #include <utility>
-#include <vector>
-#include <typeinfo>
-#include <typeindex>
-#include <functional>
-#include <type_traits>
 
 #include <lom/util.h>
 #include <lom/limit.h>
@@ -602,97 +597,6 @@ public:
     }
 };
 
-class _StrFmter
-{
-    static void SprintfOne(std::string &s, std::type_index arg_ptr_ti, const char *fmt, ...);
-
-    struct FmtArg
-    {
-        std::function<void (std::string &, const char *)> sprintf_;
-        std::function<void (std::string &, const char *, int)> sprintf_1_;
-        std::function<void (std::string &, const char *, int, int)> sprintf_2_;
-        bool is_int_ = false;
-        int as_int_ = 0;
-
-        template <
-            typename Arg,
-            typename std::enable_if<
-                std::is_integral<Arg>::value &&
-                (sizeof(Arg) < sizeof(int) || (sizeof(Arg) == sizeof(int) && std::is_signed<Arg>::value))
-            >::type * = nullptr
-        >
-        void SetAsInt(const Arg *p)
-        {
-            is_int_ = true;
-            as_int_ = *p;
-        }
-
-        void SetAsInt(...)
-        {
-        }
-
-        template <typename Arg>
-        FmtArg(const Arg *p)
-        {
-            sprintf_ = [p] (std::string &s, const char *fmt) {
-                SprintfOne(s, typeid(p), fmt, *p);
-            };
-            sprintf_1_ = [p] (std::string &s, const char *fmt, int wp1) {
-                SprintfOne(s, typeid(p), fmt, wp1, *p);
-            };
-            sprintf_2_ = [p] (std::string &s, const char *fmt, int wp1, int wp2) {
-                SprintfOne(s, typeid(p), fmt, wp1, wp2, *p);
-            };
-
-            SetAsInt(p);
-        }
-
-        void SetCStrSprintfs(const char *cs)
-        {
-            sprintf_ = [cs] (std::string &s, const char *fmt) {
-                SprintfOne(s, typeid(const char *const *), fmt, cs);
-            };
-            sprintf_1_ = [cs] (std::string &s, const char *fmt, int wp1) {
-                SprintfOne(s, typeid(const char *const *), fmt, wp1, cs);
-            };
-            sprintf_2_ = [cs] (std::string &s, const char *fmt, int wp1, int wp2) {
-                SprintfOne(s, typeid(const char *const *), fmt, wp1, wp2, cs);
-            };
-        }
-
-        template <size_t N>
-        FmtArg(const char (*p)[N])
-        {
-            SetCStrSprintfs(*p);
-        }
-        FmtArg(const std::string *p)
-        {
-            SetCStrSprintfs(p->c_str());
-        }
-        FmtArg(const Str *p)
-        {
-            SetCStrSprintfs(p->CStr());
-        }
-    };
-
-    static void Sprintf(Str &result, const char *fmt, const std::vector<FmtArg> &fas);
-
-    template <typename... Args>
-    static void Sprintf(Str &result, const char *fmt, const Args &...args)
-    {
-        Sprintf(result, fmt, {FmtArg(&args)...});
-    }
-
-    template <typename... Args>
-    friend Str Sprintf(const char *fmt, const Args &...args);
-};
-
-template <typename... Args>
-Str Sprintf(const char *fmt, const Args &...args)
-{
-    Str result;
-    _StrFmter::Sprintf(result, fmt, args...);
-    return result;
-}
+Str Sprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 }
