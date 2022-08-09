@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stddef.h>
 
 #include <string>
 #include <utility>
@@ -23,7 +24,7 @@ class GoSlice;
 
 class Str;
 
-class StrSlice
+class StrSlice final
 {
     const char *p_;
     int8_t is_zero_end_;
@@ -222,7 +223,7 @@ public:
     Str Replace(StrSlice a, StrSlice b, ssize_t max_count = kStrLenMax) const;
 };
 
-class Str
+class Str final
 {
     struct LongStr
     {
@@ -239,6 +240,20 @@ class Str
         }
     };
 
+    /*
+    Str结构说明：
+        - 由于limit.h已经限定了指针是8字节，则通过字节对齐我们如下布局来安排Str对象，共16字节
+        - ss=short-string，ss_len_字段表示短串长度，若为负数则表示当前Str是一个长串
+            - 短串存储是将Str结构中ss_len_之后的空间，即ss_start_开始的空间，看做一段内存直接存储字符串
+            - 长串存储是用ls_len_high_和ls_len_low_分别存储长度的高16位和低32位，然后由lsp_存储具体对象，
+              长串在Str对象进行创建、赋值、析构时会调整LongStr对象中的引用计数
+        - 由于含有末尾\0，再扣去ss_len_，则支持的短串长度为[0, 14]
+
+    根据C++11开始的规定，Str的这种定义方式是一个标准布局，所以我们可以假设下述字段如所期望的布局方式存储，
+    并在下面的IsLongStr方法中做个静态断言检查以确保这个设计能正常运作，
+    当然更通用的做法是定义char [16]然后按字节偏移来手动存储长串的各种信息，但那样一来代码比较麻烦，
+    我们也不考虑对更老的标准的支持了
+    */
     int8_t ss_len_;
     char ss_start_;
     uint16_t ls_len_high_;
@@ -247,6 +262,11 @@ class Str
 
     bool IsLongStr() const
     {
+        //对上述假设做一个静态断言检查
+        static_assert(
+            sizeof(Str) == 16 && offsetof(Str, ss_len_) == 0 && offsetof(Str, ss_start_) == 1,
+            "unsupportted string fields arrangement");
+
         return ss_len_ < 0;
     }
 
@@ -597,6 +617,10 @@ public:
     }
 };
 
+/*
+类似标准库的sprintf，但不是打印到给定buf，而是打印成一个Str对象
+输入参数语法和printf族的规定一致
+*/
 Str Sprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 }

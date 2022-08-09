@@ -487,7 +487,7 @@ Str Sprintf(const char *fmt, ...)
         va_end(ap);
         if (need_len < (int)sizeof(buf))
         {
-            return buf;
+            return Str(buf, need_len);
         }
     }
     {

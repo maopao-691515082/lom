@@ -13,7 +13,7 @@ namespace lom
 /*
 简易lru-cache
 K需要实现operator<比较方法并保证全序性（因为用的STL的map）
-V可以实现Size()方法来决定每个元素占用的实际大小，返回类型需要是ssize_t，
+V可以实现Size方法来决定每个元素占用的实际大小，方法签名需要是`ssize_t Size() const`
 调用者保证返回的合法性（>0且累加不会溢出ssize_t），若V没有实现Size()方法，则每个V的大小默认为1，
 LRUCache的大小计算和淘汰按所有元素的大小的和计算
 */
@@ -33,10 +33,10 @@ class LRUCache
 
     template <
         typename VT,
-        typename = typename std::enable_if<std::is_same<
-            decltype(((VT *)nullptr)->Size()),
+        typename std::enable_if<std::is_same<
+            decltype(((const VT *)nullptr)->Size()),
             ssize_t
-        >::value>::type
+        >::value>::type * = nullptr
     >
     static ssize_t VSize(const VT &v)
     {
@@ -75,6 +75,11 @@ public:
             l_.splice(l_.end(), l_, list_iter);
         }
         return &(*list_iter).second;
+    }
+
+    ssize_t Size() const
+    {
+        return sz_;
     }
 
     void Erase(const K &k)

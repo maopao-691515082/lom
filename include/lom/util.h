@@ -7,6 +7,7 @@
 namespace lom
 {
 
+//Defer对象在销毁时执行指定函数，一般用法是定义变量，在变量所在块结束时执行收尾工作
 class Defer
 {
     std::function<void ()> f_;
