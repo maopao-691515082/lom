@@ -253,6 +253,7 @@ void Str::MoveFrom(Buf &&buf)
         ss_len_ = buf.len_;
         char *ss = &ss_start_;
         memcpy(ss, buf.p_, buf.len_ + 1);
+        delete[] buf.p_;
         return;
     }
 

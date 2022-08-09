@@ -24,8 +24,17 @@ class GoSlice;
 
 class Str;
 
+/*
+StrSlice用于引用一段连续的char数据
+由于只是简单引用，因此使用者自行保证有效性，即作用域或生存期小于数据源
+支持负索引，索引存取的输入合法性由调用者保证
+*/
 class StrSlice final
 {
+    /*
+    一般的字符串slice是指针+长度的组合，这里稍微复杂一点，长度用48bit存储，
+    将空出来的两个字节中的一个用于标记此StrSlice后面是否有一个合法的字节\0，这在某些操作时会比较方便
+    */
     const char *p_;
     int8_t is_zero_end_;
     int8_t padding_;
@@ -45,6 +54,7 @@ class StrSlice final
 
 public:
 
+    //通用构造器，调用者自行保证输入合法性
     StrSlice(const char *p, ssize_t len, bool is_zero_end) : p_(p), is_zero_end_(is_zero_end)
     {
         Assert(0 <= len && len <= kStrLenMax && (!is_zero_end || p[len] == '\0'));
@@ -52,29 +62,29 @@ public:
         len_low_ = len & kUInt32Max;
     }
 
+    //根据指定数据段构造，在未知信息的情况下is_zero_end_为false
     StrSlice(const char *p, ssize_t len) : StrSlice(p, len, false)
     {
     }
 
+    //空切片
     StrSlice() : StrSlice(nullptr, 0, false)
     {
     }
 
+    //从各种字符串构建
     StrSlice(const char *s) : StrSlice(s, (ssize_t)strlen(s), true)
     {
     }
-
     StrSlice(const std::string &s) : StrSlice(s.c_str(), (ssize_t)s.size(), true)
     {
     }
-
     StrSlice(const Str &s);
 
     const char *Data() const
     {
         return p_;
     }
-
     ssize_t Len() const
     {
         return ((ssize_t)len_high_ << 32) + (ssize_t)len_low_;
@@ -86,6 +96,7 @@ public:
         return Data()[idx];
     }
 
+    //字典序比较
     int Cmp(StrSlice s) const
     {
         int ret = memcmp(Data(), s.Data(), std::min(Len(), s.Len()));
@@ -96,6 +107,7 @@ public:
         );
     }
 
+    //运算符也统一实现一下，某些标准库容器需要
     bool operator<  (StrSlice s) const { return Cmp(s) <    0; }
     bool operator<= (StrSlice s) const { return Cmp(s) <=   0; }
     bool operator>  (StrSlice s) const { return Cmp(s) >    0; }
@@ -103,8 +115,10 @@ public:
     bool operator== (StrSlice s) const { return Cmp(s) ==   0; }
     bool operator!= (StrSlice s) const { return Cmp(s) !=   0; }
 
+    //忽略大小写比较是否相等
     bool CaseEq(StrSlice s) const;
 
+    //指定起始索引和长度返回新的串切片，不指定长度则表示后半段，返回的和当前串引用同一个数据源
     StrSlice Slice(ssize_t start, ssize_t len) const
     {
         auto this_len = FixIdx(start, true);
@@ -118,6 +132,7 @@ public:
         return StrSlice(Data() + start, this_len - start, is_zero_end_);
     }
 
+    //正向或反向查找字节，返回索引，不存在返回-1
     ssize_t IndexByte(unsigned char b) const
     {
         auto p = (const char *)memchr(Data(), b, Len());
@@ -135,11 +150,13 @@ public:
         }
         return -1;
     }
+    //判断是否包含字节的快捷方式
     bool ContainsByte(unsigned char b) const
     {
         return IndexByte(b) >= 0;
     }
 
+    //正向或反向查找子串，返回索引，不存在返回-1
     ssize_t Index(StrSlice s) const
     {
         auto p = (const char *)memmem(Data(), Len(), s.Data(), s.Len());
@@ -161,11 +178,13 @@ public:
         }
         return -1;
     }
+    //判断是否包含子串的快捷方式
     bool Contains(StrSlice s) const
     {
         return Index(s) >= 0;
     }
 
+    //判断是否含有前后缀
     bool HasPrefix(StrSlice s) const
     {
         auto s_len = s.Len();
@@ -177,6 +196,10 @@ public:
         return this_len >= s_len && memcmp(Data() + (this_len - s_len), s.Data(), s_len) == 0;
     }
 
+    /*
+    返回移除左、右或两端的所有存在于指定字符集合中的字符后的切片，指定字符集合默认为空白字符集，
+    返回的和当前串引用同一个数据源
+    */
     StrSlice LTrim(StrSlice chs = kSpaceBytes) const
     {
         ssize_t this_len = Len(), i = 0;
@@ -200,29 +223,68 @@ public:
         return LTrim(chs).RTrim(chs);
     }
 
+    /*
+    作为字符串来解析整数或浮点数，解析整数时可指定进制，进制为0表示自动按照前缀进行，失败返回错误
+    注意和标准库的解析方式不同的是，这些接口不允许前导空白符，必须整个串是一个严格完整的数字表示才成功，
+    在类似需求下可以先用Trim方法去除空白等字符
+    */
     Err::Ptr ParseInt64(int64_t &v, int base = 0) const;
     Err::Ptr ParseUInt64(uint64_t &v, int base = 0) const;
     Err::Ptr ParseFloat(float &v) const;
     Err::Ptr ParseDouble(double &v) const;
     Err::Ptr ParseLongDouble(long double &v) const;
 
+    /*
+    返回串的可视化表示，规则：
+        - 表示的两端用单引号括起来
+        - 常见转义字符用其转义形式表示：\a \b \f \n \r \t \v
+        - 反斜杠和单引号也用转义形式表示：\\ \'
+        - 其余字符中，编号32~126范围内的字符原样表示
+        - 剩余字符用两位16进制转义的形式表示：\xHH
+    */
     Str Repr() const;
 
+    /*
+    根据sep参数分割串，返回被分割后的各部分构成的GoSlice，规则：
+        - 若sep为空串，则根据连续空白符分割，且忽略两端空白符
+            - 例如："  \ta   \v b   \n\rc"被分割为["a", "b", "c"]
+        - 若sep不为空串，则严格按照sep分割，若出现K个sep，则严格分割为K+1部分
+            - 例如："|a|bc|  d||e"按"|"分割，结果是["", "a", "bc", "  d", "", "e"]
+        - 返回的和当前串引用同一个数据源
+    */
     GoSlice<StrSlice> Split(StrSlice sep) const;
 
+    //将所包含的所有字母转为大写或小写，返回转换后的Str对象
     Str Upper() const;
     Str Lower() const;
 
+    /*
+    Hex将串转为16进制的形式，每个字符用两位HH表示，例如"1+2"转为"312B32"
+    Unhex执行反向操作，若输入的不是合法的形式，则返回解析错误
+    */
     Str Hex() const;
     Err::Ptr Unhex(Str &s) const;
 
+    //以当前串为分隔符，链接输入的GoSlice中的所有串，返回结果
     Str Join(GoSlice<StrSlice> gs) const;
     Str Join(GoSlice<Str> gs) const;
 
+    /*
+    在当前串中查找子串a，并返回等同于将其替换为指定串的结果的新Str
+    第一种形式是通过f返回需要替换成的指定内容，每次替换都会调用一次f，第二种形式则是直接指定串b作为内容
+    max_count可限定最大替换次数
+    每一次替换完成后，是从剩余的串开始查找下一个串a，例如StrSlice("xxx").Replace("x", "xx")会返回"xxxxxx"，
+    而不会永久循环
+    */
     Str Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count = kStrLenMax) const;
     Str Replace(StrSlice a, StrSlice b, ssize_t max_count = kStrLenMax) const;
 };
 
+/*
+自实现的字符串类，和Java、Go等语言的字符串类相同，可视为引用不可变字符串的引用类型
+Str的大部分方法算法都是将自身转为StrSlice后，再调用其对应方法，以下这种情况不再单独注释说明
+和大部分字符串实现一样，Str会在有效数据末尾额外申请一个字节并存放\0，从而在某些方法下兼容C风格
+*/
 class Str final
 {
     struct LongStr
@@ -241,7 +303,7 @@ class Str final
     };
 
     /*
-    Str结构说明：
+    Str结构和算法说明：
         - 由于limit.h已经限定了指针是8字节，则通过字节对齐我们如下布局来安排Str对象，共16字节
         - ss=short-string，ss_len_字段表示短串长度，若为负数则表示当前Str是一个长串
             - 短串存储是将Str结构中ss_len_之后的空间，即ss_start_开始的空间，看做一段内存直接存储字符串
@@ -296,20 +358,17 @@ class Str final
 
 public:
 
+    //从其他类型的数据转Str都通过StrSlice转统一流程
     Str(StrSlice s);
-
     Str() : Str(StrSlice())
     {
     }
-
     Str(const char *s) : Str(StrSlice(s))
     {
     }
-
     Str(const char *p, ssize_t len) : Str(StrSlice(p, len))
     {
     }
-
     Str(const std::string &s) : Str(StrSlice(s))
     {
     }
@@ -319,6 +378,7 @@ public:
         Assign(s);
     }
 
+    //移动构造会将s的内容迁移到当前对象，并将s置空，移动赋值操作也是一样的机制
     Str(Str &&s)
     {
         MoveFrom(std::move(s));
@@ -375,6 +435,7 @@ public:
     {
         return IsLongStr() ? ((ssize_t)ls_len_high_ << 32) + (ssize_t)ls_len_low_ : ss_len_;
     }
+    //类似STL的string的c_str方法，Str对象会保证末尾有额外的\0，所以直接按C风格字符串访问是没问题的
     const char *CStr() const
     {
         return Data();
@@ -481,8 +542,13 @@ public:
         return Slice().Repr();
     }
 
+    //算法同StrSlice的Split，但返回的GoSlice的元素是Str对象类型
     GoSlice<Str> Split(StrSlice sep) const;
 
+    /*
+    Buf对象可看做是一段可写、可追加的字节区，一般用于构建字符串，不可拷贝构建或赋值
+    会保证逻辑数据后有一个额外的\0字节，但是调用者不应该去修改它，否则行为未定义
+    */
     class Buf
     {
         char *p_;
@@ -511,16 +577,15 @@ public:
 
     public:
 
+        //可构建空Buf或指定len和cap构建，len和cap的合法性由调用者保证
         Buf()
         {
             Construct();
         }
-
         Buf(ssize_t len, ssize_t cap)
         {
             Construct(len, cap);
         }
-
         Buf(ssize_t len) : Buf(len, len)
         {
         }
@@ -530,35 +595,39 @@ public:
             free(p_);
         }
 
+        /*
+        返回当前Buf的数据指针和长度，注意由于Buf内部缓冲区是可扩缩的，这个指针和长度有可能失效，
+        需要调用者自行保证合法使用，大部分时候只需要安全使用下面的Write和Append方法即可
+        */
         char *Data() const
         {
             return p_;
         }
-
         ssize_t Len() const
         {
             return len_;
         }
 
+        //将Buf扩展到指定长度，若当前长度已>=len则不做变化
         void FitLen(ssize_t len);
 
+        //指定偏移写数据内容，若当前长度不足则会自动扩展到需要的长度
         void Write(ssize_t offset, const char *p, ssize_t len)
         {
             Assert(0 <= offset && offset <= len_ && 0 <= len && len <= kStrLenMax - offset);
             FitLen(offset + len);
             memcpy(p_ + offset, p, len);
         }
-
         void Write(ssize_t offset, StrSlice s)
         {
             Write(offset, s.Data(), s.Len());
         }
 
+        //追加数据
         void Append(const char *p, ssize_t len)
         {
             Write(len_, p, len);
         }
-
         void Append(StrSlice s)
         {
             Write(len_, s);
@@ -571,11 +640,15 @@ private:
 
 public:
 
+    /*
+    从Buf对象移动构建或移动赋值Str，buf本身会被初始化为空
+    对于长串，是将buf维护的下层数据直接移动给Str对象，所以性能比较好，
+    但是可能会因为buf的构建过程浪费一定空间（即buf的cap_比len_要大）
+    */
     Str(Buf &&buf)
     {
         MoveFrom(std::move(buf));
     }
-
     Str &operator=(Buf &&buf)
     {
         Destruct();
@@ -583,6 +656,7 @@ public:
         return *this;
     }
 
+    //将整数转为字符串（十进制），这里的实现比STL稍快一些（有的STL实现用snprintf）
     static Str FromInt64(int64_t n);
     static Str FromUInt64(uint64_t n);
 

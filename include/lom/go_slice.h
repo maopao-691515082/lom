@@ -14,6 +14,11 @@
 namespace lom
 {
 
+/*
+类似Go语言的slice的容器，扩展支持了负索引，按索引访问时，调用者自行保证索引的合法性
+容器元素的类型T必须支持默认构造、复制构造、赋值等操作
+*/
+
 template <typename T>
 class GoSlice
 {
@@ -130,33 +135,33 @@ class GoSlice
 
 public:
 
+    //构建空slice，Nil为从当前变量构建的快捷方法
     GoSlice()
     {
     }
+    static GoSlice<T> Nil()
+    {
+        return GoSlice<T>();
+    }
 
+    //通过指定len和cap构建，调用者自行保证len和cap的合法性
     GoSlice(ssize_t len, ssize_t cap) : a_(new Array(cap)), start_(0), len_(len)
     {
         Assert(0 <= len && len <= cap);
     }
-
     GoSlice(ssize_t len) : GoSlice(len, len)
     {
     }
 
+    //通过初始化列表构建
     GoSlice(std::initializer_list<T> l) : a_(new Array(l)), start_(0), len_((ssize_t)l.size())
     {
-    }
-
-    static GoSlice<T> Nil()
-    {
-        return GoSlice<T>();
     }
 
     ssize_t Len() const
     {
         return len_;
     }
-
     ssize_t Cap() const
     {
         return a_ ? (ssize_t)a_->a_.size() - start_ : 0;
@@ -166,6 +171,7 @@ public:
     {
         return At(idx);
     }
+    //注意GetCRef返回的是容器中元素的引用，调用者自行保证其不会失效
     const T &GetCRef(ssize_t idx) const
     {
         return At(idx);
@@ -176,30 +182,36 @@ public:
         At(idx) = t;
         return *this;
     }
-
     GoSlice<T> Set(ssize_t idx, T &&t) const
     {
         At(idx) = std::move(t);
         return *this;
     }
 
+    //slice的获取是指定起始索引和长度，而不是Go和Python的惯例[begin, end)
     GoSlice<T> Slice(ssize_t start, ssize_t len) const
     {
         auto cap = FixIdx(start, true, true);
         Assert(0 <= len && len <= cap - start);
         return GoSlice<T>(a_, start_ + start, len);
     }
+    //不指定长度则表示从指定位置到末尾
     GoSlice<T> Slice(ssize_t start) const
     {
         auto this_len = FixIdx(start, true);
         return GoSlice<T>(a_, start_ + start, this_len - start);
     }
 
+    //若为GoSlice<char>，则可通过这个方法获取对应数据的StrSlice
     ::lom::StrSlice StrSlice() const
     {
         return a_ ? ::lom::StrSlice(&a_->a_[start_], Len()) : ::lom::StrSlice();
     }
 
+    /*
+    和Go的append机制相同，是修改原slice对象，而是返回一个新的slice，但是二者有可能引用同一个底层数组，
+    即潜在副作用，这点需要注意
+    */
     GoSlice<T> Append(const T &t) const
     {
         return AppendOneElem<const T &>(t);
@@ -223,6 +235,7 @@ public:
         }
         return NewArrayAndAppend(len, cap, l_len, l.begin(), l.end());
     }
+    //这里和Go的实现一样，考虑到了区间重叠的情况
     GoSlice<T> Append(GoSlice<T> s) const
     {
         auto len = Len(), cap = Cap(), s_len = s.Len();
@@ -240,7 +253,8 @@ public:
         return NewArrayAndAppend(len, cap, s_len, sb, se);
     }
 
-    GoSlice<T> Iter(std::function<void (ssize_t, T &)> f) const
+    //遍历slice对象并对每个元素调用指定函数，注意是用T &传入，所以是可读可写的
+    GoSlice<T> Iter(std::function<void (ssize_t idx, T &)> f) const
     {
         auto len = Len();
         for (ssize_t i = 0; i < len; ++ i)
@@ -249,7 +263,6 @@ public:
         }
         return *this;
     }
-
     GoSlice<T> Iter(std::function<void (T &)> f) const
     {
         return Iter([&] (ssize_t idx, T &t) {
@@ -257,6 +270,7 @@ public:
         });
     }
 
+    //遍历slice所有元素，对每个元素执行传入的函数，并将结果组成一个新的slice
     template <typename MT>
     GoSlice<MT> Map(std::function<MT (const T &)> f)
     {
@@ -266,7 +280,7 @@ public:
         });
         return gs;
     }
-
+    //通用Map的快捷方式，对每个元素转为新类型
     template <typename MT>
     GoSlice<MT> Map()
     {
