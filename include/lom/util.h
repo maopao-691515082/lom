@@ -33,7 +33,7 @@ static inline void Assert(bool cond)
 }
 
 //不推荐直接使用_Die，用宏LOM_DIE
-void _Die(const char *file_name, int line, const char *fmt, ...);
+void _Die(const char *file_name, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 
 }
 
