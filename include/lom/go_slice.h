@@ -265,7 +265,7 @@ public:
     }
     GoSlice<T> Iter(std::function<void (T &)> f) const
     {
-        return Iter([&] (ssize_t idx, T &t) {
+        return Iter([&] (ssize_t, T &t) {
             f(t);
         });
     }

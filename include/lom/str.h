@@ -37,7 +37,7 @@ class StrSlice final
     */
     const char *p_;
     int8_t is_zero_end_;
-    int8_t padding_;
+    [[maybe_unused]] int8_t padding_;
     uint16_t len_high_;
     uint32_t len_low_;
 

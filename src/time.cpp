@@ -29,7 +29,7 @@ Str StrFTime(const char *fmt, int64_t ts_sec)
 {
     time_t ts = ts_sec < 0 ? (time_t)NowSec() : (time_t)ts_sec;
 
-    struct tm tm_r = {0};
+    struct tm tm_r;
     localtime_r(&ts, &tm_r);
 
     static thread_local char buf[4 * 1024];
