@@ -36,8 +36,7 @@ class StrSlice final
     将空出来的两个字节中的一个用于标记此StrSlice后面是否有一个合法的字节\0，这在某些操作时会比较方便
     */
     const char *p_;
-    int8_t is_zero_end_;
-    [[maybe_unused]] int8_t padding_;
+    int16_t is_zero_end_;
     uint16_t len_high_;
     uint32_t len_low_;
 
