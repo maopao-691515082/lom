@@ -7,6 +7,7 @@
 
 #include <string>
 #include <utility>
+#include <atomic>
 
 #include <lom/util.h>
 #include <lom/limit.h>
