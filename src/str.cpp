@@ -24,80 +24,66 @@ bool StrSlice::CaseEq(StrSlice s) const
     return true;
 }
 
-class ParseNumErr : public Err
-{
-    const char *func_name_;
-    ssize_t pos_;
-    const char *msg_;
-
-public:
-
-    ParseNumErr(const char *func_name, ssize_t pos, const char *msg) :
-        func_name_(func_name), pos_(pos), msg_(msg)
-    {
-    }
-
-    virtual Str Msg() const override
-    {
-        return Sprintf("%s: error at pos [%zd]: %s", func_name_, pos_, msg_);
-    }
-};
-
-#define LOM_STR_SLICE_PARSE_NUM(_func_name, _str_to_raw_v) do {                     \
-    const char *p;                                                                  \
-    std::string buf;                                                                \
-    auto len = Len();                                                               \
-    if (len == 0) {                                                                 \
-        return new ParseNumErr(#_func_name, 0, "empty input");                      \
-    }                                                                               \
-    if (is_zero_end_) {                                                             \
-        p = Data();                                                                 \
-    } else {                                                                        \
-        buf.assign(Data(), len);                                                    \
-        p = buf.c_str();                                                            \
-    }                                                                               \
-    if (isspace(*p)) {                                                              \
-        return new ParseNumErr(#_func_name, 0, "leading spaces is not allowed");    \
-    }                                                                               \
-    const char *end_ptr;                                                            \
-    errno = 0;                                                                      \
-    auto raw_v = _str_to_raw_v;                                                     \
-    if (*end_ptr != '\0') {                                                         \
-        return new ParseNumErr(#_func_name, end_ptr - p, "invalid input");          \
-    }                                                                               \
-    if (end_ptr != p + len) {                                                       \
-        return new ParseNumErr(#_func_name, end_ptr - p, "input contains '\\0'");   \
-    }                                                                               \
-    if (errno != 0) {                                                               \
-        return new ParseNumErr(#_func_name, 0, "parse failed");                     \
-    }                                                                               \
-    v = raw_v;                                                                      \
-    return nullptr;                                                                 \
+#define LOM_STR_SLICE_PARSE_NUM_FAIL(_pos, _msg) do {                                               \
+    SetLastErr(Sprintf("%s: error at pos[%zd] %s", __builtin_FUNCTION(), (ssize_t)(_pos), (_msg))); \
+    return false;                                                                                   \
 } while (false)
 
-Err::Ptr StrSlice::ParseInt64(int64_t &v, int base) const
+#define LOM_STR_SLICE_PARSE_NUM(_str_to_raw_v) do {                         \
+    const char *p;                                                          \
+    std::string buf;                                                        \
+    auto len = Len();                                                       \
+    if (len == 0) {                                                         \
+        LOM_STR_SLICE_PARSE_NUM_FAIL(0, "empty input");                     \
+    }                                                                       \
+    if (is_zero_end_) {                                                     \
+        p = Data();                                                         \
+    } else {                                                                \
+        buf.assign(Data(), len);                                            \
+        p = buf.c_str();                                                    \
+    }                                                                       \
+    if (isspace(*p)) {                                                      \
+        LOM_STR_SLICE_PARSE_NUM_FAIL(0, "leading spaces is not allowed");   \
+    }                                                                       \
+    const char *end_ptr;                                                    \
+    errno = 0;                                                              \
+    auto raw_v = _str_to_raw_v;                                             \
+    if (*end_ptr != '\0') {                                                 \
+        LOM_STR_SLICE_PARSE_NUM_FAIL(end_ptr - p, "invalid input");         \
+    }                                                                       \
+    if (end_ptr != p + len) {                                               \
+        LOM_STR_SLICE_PARSE_NUM_FAIL(end_ptr - p, "input contains '\\0'");  \
+    }                                                                       \
+    if (errno != 0) {                                                       \
+        LOM_STR_SLICE_PARSE_NUM_FAIL(0, "parse failed");                    \
+    }                                                                       \
+    v = raw_v;                                                              \
+    return true;                                                            \
+} while (false)
+
+bool StrSlice::ParseInt64(int64_t &v, int base) const
 {
-    LOM_STR_SLICE_PARSE_NUM(ParseInt64, strtoll(p, (char **)&end_ptr, base));
+    LOM_STR_SLICE_PARSE_NUM(strtoll(p, (char **)&end_ptr, base));
 }
 
-Err::Ptr StrSlice::ParseUInt64(uint64_t &v, int base) const
+bool StrSlice::ParseUInt64(uint64_t &v, int base) const
 {
-    LOM_STR_SLICE_PARSE_NUM(ParseUInt64, strtoull(p, (char **)&end_ptr, base));
+    LOM_STR_SLICE_PARSE_NUM(strtoull(p, (char **)&end_ptr, base));
 }
 
-Err::Ptr StrSlice::ParseFloat(float &v) const
+bool StrSlice::ParseFloat(float &v) const
 {
-    LOM_STR_SLICE_PARSE_NUM(ParseFloat, strtof(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(strtof(p, (char **)&end_ptr));
 }
 
-Err::Ptr StrSlice::ParseDouble(double &v) const
+bool StrSlice::ParseDouble(double &v) const
 {
-    LOM_STR_SLICE_PARSE_NUM(ParseDouble, strtod(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(strtod(p, (char **)&end_ptr));
 }
 
-Err::Ptr StrSlice::ParseLongDouble(long double &v) const
+bool StrSlice::ParseLongDouble(long double &v) const
 {
-    LOM_STR_SLICE_PARSE_NUM(ParseLongDouble, strtold(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(strtold(p, (char **)&end_ptr));
 }
 
 static const char *const kHexDigests = "0123456789ABCDEF";
@@ -352,13 +338,14 @@ Str StrSlice::Hex() const
     return Str(std::move(b));
 }
 
-Err::Ptr StrSlice::Unhex(Str &s) const
+bool StrSlice::Unhex(Str &s) const
 {
     auto data = Data();
     auto len = Len();
     if (len % 2 != 0)
     {
-        return Err::NewSimple("Unhex: odd length");
+        SetLastErr("Unhex: odd length");
+        return false;
     }
     Str::Buf b(len / 2);
     auto p = b.Data();
@@ -384,13 +371,14 @@ Err::Ptr StrSlice::Unhex(Str &s) const
         int n1 = c_2_i(data[i]), n2 = c_2_i(data[i + 1]);
         if (n1 < 0 || n2 < 0)
         {
-            return Err::NewSimple(Sprintf("Unhex: invalid digit at pos [%zd]", n1 < 0 ? i : i + 1));
+            SetLastErr(Sprintf("Unhex: invalid digit at pos [%zd]", n1 < 0 ? i : i + 1));
+            return false;
         }
         *(unsigned char *)&p[i / 2] = n1 * 16 + n2;
     }
 
     s = std::move(b);
-    return nullptr;
+    return true;
 }
 
 template <typename T>

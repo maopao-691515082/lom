@@ -3,25 +3,16 @@
 namespace lom
 {
 
-class SimpleErr : public Err
+static thread_local Str last_err;
+
+void SetLastErr(Str s)
 {
-    Str msg_;
+    last_err = s;
+}
 
-public:
-
-    SimpleErr(Str msg) : msg_(msg)
-    {
-    }
-
-    virtual Str Msg() const override
-    {
-        return msg_;
-    }
-};
-
-Err::Ptr Err::NewSimple(Str msg)
+Str LastErr()
 {
-    return new SimpleErr(msg);
+    return last_err;
 }
 
 }

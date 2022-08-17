@@ -10,7 +10,6 @@
 
 #include <lom/util.h>
 #include <lom/limit.h>
-#include <lom/err.h>
 
 namespace lom
 {
@@ -223,15 +222,15 @@ public:
     }
 
     /*
-    作为字符串来解析整数或浮点数，解析整数时可指定进制，进制为0表示自动按照前缀进行，失败返回错误
+    作为字符串来解析整数或浮点数，解析整数时可指定进制，进制为0表示自动按照前缀进行，返回是否成功
     注意和标准库的解析方式不同的是，这些接口不允许前导空白符，必须整个串是一个严格完整的数字表示才成功，
     在类似需求下可以先用Trim方法去除空白等字符
     */
-    Err::Ptr ParseInt64(int64_t &v, int base = 0) const;
-    Err::Ptr ParseUInt64(uint64_t &v, int base = 0) const;
-    Err::Ptr ParseFloat(float &v) const;
-    Err::Ptr ParseDouble(double &v) const;
-    Err::Ptr ParseLongDouble(long double &v) const;
+    bool ParseInt64(int64_t &v, int base = 0) const;
+    bool ParseUInt64(uint64_t &v, int base = 0) const;
+    bool ParseFloat(float &v) const;
+    bool ParseDouble(double &v) const;
+    bool ParseLongDouble(long double &v) const;
 
     /*
     返回串的可视化表示，规则：
@@ -259,10 +258,10 @@ public:
 
     /*
     Hex将串转为16进制的形式，每个字符用两位HH表示，例如"1+2"转为"312B32"
-    Unhex执行反向操作，若输入的不是合法的形式，则返回解析错误
+    Unhex执行反向操作，返回是否成功，若输入的不是合法的形式，则返回失败
     */
     Str Hex() const;
-    Err::Ptr Unhex(Str &s) const;
+    bool Unhex(Str &s) const;
 
     //以当前串为分隔符，链接输入的GoSlice中的所有串，返回结果
     Str Join(GoSlice<StrSlice> gs) const;
@@ -515,23 +514,23 @@ public:
         return Slice().Trim(chs);
     }
 
-    Err::Ptr ParseInt64(int64_t &v, int base = 0) const
+    bool ParseInt64(int64_t &v, int base = 0) const
     {
         return Slice().ParseInt64(v, base);
     }
-    Err::Ptr ParseUInt64(uint64_t &v, int base = 0) const
+    bool ParseUInt64(uint64_t &v, int base = 0) const
     {
         return Slice().ParseUInt64(v, base);
     }
-    Err::Ptr ParseFloat(float &v) const
+    bool ParseFloat(float &v) const
     {
         return Slice().ParseFloat(v);
     }
-    Err::Ptr ParseDouble(double &v) const
+    bool ParseDouble(double &v) const
     {
         return Slice().ParseDouble(v);
     }
-    Err::Ptr ParseLongDouble(long double &v) const
+    bool ParseLongDouble(long double &v) const
     {
         return Slice().ParseLongDouble(v);
     }
@@ -672,7 +671,7 @@ public:
     {
         return Slice().Hex();
     }
-    Err::Ptr Unhex(Str &s) const
+    bool Unhex(Str &s) const
     {
         return Slice().Unhex(s);
     }
