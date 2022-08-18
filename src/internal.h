@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include <lom.h>
+#include "../include/lom.h"
 
 namespace lom
 {

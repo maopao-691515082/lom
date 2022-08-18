@@ -1,24 +1,6 @@
 #pragma once
 
-//这个文件进行了所需的环境约束检查，并提供C++风格的各种常用值范围定义
-
-#include <stdint.h>
-
-#include <sys/types.h>
-
-//lom用到了一些GNUC扩展的语法，需要这个支持
-#ifndef __GNUC__
-#   error error: lom needs GNUC
-#endif
-
-//限定只支持常见的64-bit系统和数据类型模型（LP64 or LLP64）
-static_assert(sizeof(long long) == 8, "error: lom needs 64-bit `long long`");
-static_assert(
-    sizeof(void *) == 8 && sizeof(size_t) == 8 && sizeof(ssize_t) == 8,
-    "error: lom needs 64-bit pointer and `size_t` and `ssize_t`");
-static_assert(
-    sizeof(float) == 4 && sizeof(double) == 8,
-    "error: lom needs 32-bit `float` and 64-bit `double`");
+#include "_internal.h"
 
 namespace lom
 {

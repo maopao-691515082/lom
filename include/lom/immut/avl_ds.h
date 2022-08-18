@@ -1,6 +1,8 @@
 #pragma once
 
-#include <lom/immut/avl.h>
+#include "../_internal.h"
+
+#include "avl.h"
 
 namespace lom
 {

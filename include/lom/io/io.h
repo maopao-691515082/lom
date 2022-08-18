@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lom/err.h>
+#include "../_internal.h"
 
 namespace lom
 {

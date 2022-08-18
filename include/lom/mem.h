@@ -1,6 +1,6 @@
 #pragma once
 
-#include <atomic>
+#include "_internal.h"
 
 namespace lom
 {

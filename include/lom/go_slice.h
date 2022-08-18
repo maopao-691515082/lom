@@ -1,15 +1,11 @@
 #pragma once
 
-#include <vector>
-#include <initializer_list>
-#include <utility>
-#include <functional>
-#include <type_traits>
+#include "_internal.h"
 
-#include <lom/mem.h>
-#include <lom/util.h>
-#include <lom/limit.h>
-#include <lom/str.h>
+#include "mem.h"
+#include "util.h"
+#include "limit.h"
+#include "str.h"
 
 namespace lom
 {

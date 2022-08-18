@@ -1,6 +1,8 @@
 #pragma once
 
-#include <lom/str.h>
+#include "_internal.h"
+
+#include "str.h"
 
 namespace lom
 {

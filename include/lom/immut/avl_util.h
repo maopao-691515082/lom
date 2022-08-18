@@ -1,7 +1,9 @@
 #pragma once
 
-#include <lom/util.h>
-#include <lom/limit.h>
+#include "../_internal.h"
+
+#include "../util.h"
+#include "../limit.h"
 
 namespace lom
 {

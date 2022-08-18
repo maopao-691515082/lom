@@ -1,16 +1,9 @@
 #pragma once
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <stddef.h>
+#include "_internal.h"
 
-#include <string>
-#include <utility>
-#include <atomic>
-
-#include <lom/util.h>
-#include <lom/limit.h>
+#include "util.h"
+#include "limit.h"
 
 namespace lom
 {

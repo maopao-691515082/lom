@@ -1,10 +1,11 @@
 #pragma once
 
-#include <utility>
+#include "../_internal.h"
 
-#include <lom/mem.h>
-#include <lom/go_slice.h>
-#include <lom/immut/avl_util.h>
+#include "../mem.h"
+#include "../go_slice.h"
+
+#include "avl_util.h"
 
 namespace lom
 {

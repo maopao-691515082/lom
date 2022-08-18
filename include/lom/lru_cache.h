@@ -1,11 +1,9 @@
 #pragma once
 
-#include <list>
-#include <map>
-#include <type_traits>
+#include "_internal.h"
 
-#include <lom/limit.h>
-#include <lom/util.h>
+#include "limit.h"
+#include "util.h"
 
 namespace lom
 {

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <stdlib.h>
-
-#include <functional>
+#include "_internal.h"
 
 namespace lom
 {
