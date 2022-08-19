@@ -29,3 +29,16 @@ static_assert(
 static_assert(
     sizeof(float) == 4 && sizeof(double) == 8,
     "error: lom needs 32-bit `float` and 64-bit `double`");
+
+namespace lom
+{
+
+static inline void Assert(bool cond)
+{
+    if (!cond)
+    {
+        abort();
+    }
+}
+
+}

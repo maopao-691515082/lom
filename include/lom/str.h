@@ -2,7 +2,6 @@
 
 #include "_internal.h"
 
-#include "util.h"
 #include "limit.h"
 
 namespace lom
