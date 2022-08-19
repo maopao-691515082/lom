@@ -284,6 +284,18 @@ public:
             return MT(t);
         });
     }
+
+    //翻转元素
+    GoSlice<T> Reverse() const
+    {
+        for (ssize_t l = 0, r = Len() - 1; l < r; ++ l, -- r)
+        {
+            T t = a_->a_[start_ + l];
+            a_->a_[start_ + l] = a_->a_[start_ + r];
+            a_->a_[start_ + r] = t;
+        }
+        return *this;
+    }
 };
 
 }

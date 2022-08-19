@@ -24,9 +24,9 @@ bool StrSlice::CaseEq(StrSlice s) const
     return true;
 }
 
-#define LOM_STR_SLICE_PARSE_NUM_FAIL(_pos, _msg) do {                                               \
-    SetLastErr(Sprintf("%s: error at pos[%zd] %s", __builtin_FUNCTION(), (ssize_t)(_pos), (_msg))); \
-    return false;                                                                                   \
+#define LOM_STR_SLICE_PARSE_NUM_FAIL(_pos, _msg) do {                                           \
+    SetErr(Sprintf("%s: error at pos[%zd] %s", __builtin_FUNCTION(), (ssize_t)(_pos), (_msg))); \
+    return false;                                                                               \
 } while (false)
 
 #define LOM_STR_SLICE_PARSE_NUM(_str_to_raw_v) do {                         \
@@ -344,7 +344,7 @@ bool StrSlice::Unhex(Str &s) const
     auto len = Len();
     if (len % 2 != 0)
     {
-        SetLastErr("Unhex: odd length");
+        SetErr("Unhex: odd length");
         return false;
     }
     Str::Buf b(len / 2);
@@ -371,7 +371,7 @@ bool StrSlice::Unhex(Str &s) const
         int n1 = c_2_i(data[i]), n2 = c_2_i(data[i + 1]);
         if (n1 < 0 || n2 < 0)
         {
-            SetLastErr(Sprintf("Unhex: invalid digit at pos [%zd]", n1 < 0 ? i : i + 1));
+            SetErr(Sprintf("Unhex: invalid digit at pos [%zd]", n1 < 0 ? i : i + 1));
             return false;
         }
         *(unsigned char *)&p[i / 2] = n1 * 16 + n2;
