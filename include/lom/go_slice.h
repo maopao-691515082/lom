@@ -285,6 +285,16 @@ public:
         });
     }
 
+    GoSlice<T> Copy() const
+    {
+        return Nil().Append(*this);
+    }
+    GoSlice<T> CopyFrom(GoSlice<T> s) const
+    {
+        Slice(0, 0).Append(s.Slice(0, std::min(Len(), s.Len())));
+        return *this;
+    }
+
     //翻转元素
     GoSlice<T> Reverse() const
     {
