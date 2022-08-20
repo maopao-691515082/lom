@@ -3,9 +3,9 @@
 namespace lom
 {
 
-void Die(Str msg, const char *file_name, int line_num)
+void Die(Str msg, CodePos _cp)
 {
-    fprintf(stderr, "LOM-DIE: [%s:%d] %s\n\n", file_name, line_num, msg.CStr());
+    fprintf(stderr, "LOM-DIE: [%s] %s\n\n", _cp.Str().CStr(), msg.CStr());
     fflush(stderr);
     kill(getpid(), SIGKILL);
 }

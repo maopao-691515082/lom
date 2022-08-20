@@ -2,6 +2,7 @@
 
 #include "lom/_internal.h"
 
+#include "lom/code_pos.h"
 #include "lom/err.h"
 #include "lom/go_slice.h"
 #include "lom/limit.h"

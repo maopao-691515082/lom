@@ -490,4 +490,19 @@ Str Sprintf(const char *fmt, ...)
     }
 }
 
+Str StrSlice::Concat(StrSlice s) const
+{
+    ssize_t len = Len(), s_len = s.Len();
+    Str::Buf b(len + s_len);
+    auto p = b.Data();
+    memcpy(p, Data(), len);
+    memcpy(p + len, s.Data(), s_len);
+    return Str(std::move(b));
+}
+
+Str StrSlice::Concat(Str s) const
+{
+    return Concat(s.Slice());
+}
+
 }

@@ -269,6 +269,9 @@ public:
     */
     Str Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count = kStrLenMax) const;
     Str Replace(StrSlice a, StrSlice b, ssize_t max_count = kStrLenMax) const;
+
+    Str Concat(StrSlice s) const;
+    Str Concat(Str s) const;
 };
 
 /*
@@ -679,6 +682,15 @@ public:
     Str Replace(StrSlice a, StrSlice b, ssize_t max_count = kStrLenMax) const
     {
         return Slice().Replace(a, b, max_count);
+    }
+
+    Str Concat(StrSlice s) const
+    {
+        return Slice().Concat(s);
+    }
+    Str Concat(Str s) const
+    {
+        return Slice().Concat(s.Slice());
     }
 };
 

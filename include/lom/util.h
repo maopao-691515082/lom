@@ -3,6 +3,7 @@
 #include "_internal.h"
 
 #include "str.h"
+#include "code_pos.h"
 
 namespace lom
 {
@@ -29,6 +30,6 @@ public:
 注意不是普通exit，不会执行语言级别的收尾工作，主要是为了避免全局变量析构顺序的不确定导致的问题
 如果需要收尾，请自行实现exit
 */
-void Die(Str msg = "", const char *file_name = __builtin_FILE(), int line_num = __builtin_LINE());
+void Die(Str msg = "", CodePos _cp = CodePos());
 
 }

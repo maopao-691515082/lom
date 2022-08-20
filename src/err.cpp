@@ -5,29 +5,38 @@ namespace lom
 
 static thread_local GoSlice<Str> err;
 
-void SetErr(Str s, const char *file_name, int line_num, const char *func_name)
+void SetErr(Str s, CodePos _cp)
 {
     err = err.Nil().Append(s);
-    PushErrBT(file_name, line_num, func_name);
+    PushErrBT(_cp);
 }
 
 Str Err()
 {
-    if (err.Len() == 0)
-    {
-        return "";
-    }
-    auto s = StrSlice("\n").Join(err.Reverse());
-    SetErr(s);
-    return s;
+    return StrSlice("\n  from ").Join(err);
 }
 
-void PushErrBT(const char *file_name, int line_num, const char *func_name)
+void PushErrBT(CodePos _cp)
 {
-    if (file_name != nullptr && line_num > 0 && func_name != nullptr)
+    if (err.Len() < 64 && _cp.Valid())
     {
-        err = err.Append(Sprintf("- File [%s] Line [%d] Func [%s]", file_name, line_num, func_name));
+        err = err.Append(_cp.Str());
     }
+}
+
+ErrProtector::ErrProtector()
+{
+    auto p = new GoSlice<Str>;
+    *p = err;
+    err = err.Nil();
+    p_ = (void *)p;
+}
+
+ErrProtector::~ErrProtector()
+{
+    auto p = (GoSlice<Str> *)p_;
+    err = *p;
+    delete p;
 }
 
 }
