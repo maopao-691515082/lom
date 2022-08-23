@@ -13,7 +13,8 @@ namespace lom
 一般来说，本迭代器可表示左闭右开区间[begin, end)
 但很多范围数据结构可以实现两端边界的迭代器，即(rend, end)，
 需要注意大部分使用迭代器的场景下是从当前位置开始，不断判断有效、获取数据并向后Inc，所以如果传递rend边界，
-其行为会和end一样
+其行为会和end一样，且rend在不少情况下比较难处理（例如从GoSlice的迭代器中映射出实际引用的GoSlice对象），
+具体实现可以自由选择对rend的处理行为
 */
 template<typename T>
 class Iterator : public RCObjDyn

@@ -328,9 +328,17 @@ public:
             return idx_ >= 0 && idx_ < gs_.Len();
         }
 
-        GoSlice<T> ToGoSlice() const
+        /*
+        返回从当前迭代器位置到创建此迭代器的GoSlice对象的右边界的GoSlice对象，且引用的下层数组一致
+        换句话说，就是若从某GoSlice对象gs创建此迭代器iter，
+        并执行了相当于执行了iter.Inc(step)的流程（step >= 0），
+        此时iter.RawGoSlice()将返回相当于gs.Slice(step)
+        若此时指向左边界rend，则返回新的空GoSlice对象，若指向右边界，
+        则返回右边界起始且长度为0的GoSlice对象，即右侧的Cap部分依然可访问（如果有的话）
+        */
+        GoSlice<T> RawGoSlice() const
         {
-            return Valid() ? gs_.Slice(idx_) : gs_.Nil();
+            return Valid() || idx_ == gs_.Len() ? gs_.Slice(idx_) : gs_.Nil();
         }
     };
 
@@ -345,7 +353,7 @@ public:
         if (gs_iter != nullptr)
         {
             //是同类型的GoSlice对象，走特化流程
-            return AppendGoSlice(gs_iter->ToGoSlice());
+            return AppendGoSlice(gs_iter->RawGoSlice());
         }
 
         auto len = Len(), cap = Cap(), l_len = iter->Size();
@@ -363,7 +371,7 @@ public:
         return NewArrayAndAppend(len, cap, l_len, iter);
     }
 
-    typename ::lom::SizedIterator<T>::Ptr NewIter() const
+    RCPtr<Iterator> NewIter() const
     {
         return new Iterator(*this, 0);
     }
