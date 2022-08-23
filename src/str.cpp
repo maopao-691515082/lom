@@ -382,24 +382,29 @@ bool StrSlice::Unhex(Str &s) const
 }
 
 template <typename T>
-Str StrSliceJoin(StrSlice s, GoSlice<T> gs)
+Str StrSliceJoin(StrSlice s, Iterator<T> *iter)
 {
-    if (gs.Len() == 0)
+    //先算长度
+    auto s_data = s.Data();
+    auto s_len = s.Len();
+    ssize_t total_len = -s_len;
+    for (auto iter_copy = iter->Copy(); iter_copy->Valid(); iter_copy->Inc())
     {
+        total_len += s_len;
+        total_len += iter_copy->Get().Len();
+    }
+    if (total_len <= 0)
+    {
+        //空列表或分隔和串全空
         return "";
     }
 
-    auto s_data = s.Data();
-    auto s_len = s.Len();
-    ssize_t total_len = 0;
-    gs.Iter([&] (T &t) {
-        total_len += t.Len();
-    });
-    total_len += s_len * (gs.Len() - 1);
     Str::Buf b(total_len);
     auto p = b.Data();
-    gs.Iter([&] (ssize_t idx, T &t) {
-        if (idx > 0)
+    for (ssize_t i = 0; iter->Valid(); iter->Inc(), ++ i)
+    {
+        const T &t = iter->Get();
+        if (i > 0)
         {
             memcpy(p, s_data, s_len);
             p += s_len;
@@ -407,18 +412,18 @@ Str StrSliceJoin(StrSlice s, GoSlice<T> gs)
         auto t_len = t.Len();
         memcpy(p, t.Data(), t_len);
         p += t_len;
-    });
+    }
     Assert(p == b.Data() + b.Len());
     return Str(std::move(b));
 }
 
-Str StrSlice::Join(GoSlice<StrSlice> gs) const
+Str StrSlice::Join(Iterator<StrSlice> *iter) const
 {
-    return StrSliceJoin(*this, gs);
+    return StrSliceJoin(*this, iter);
 }
-Str StrSlice::Join(GoSlice<Str> gs) const
+Str StrSlice::Join(Iterator<Str> *iter) const
 {
-    return StrSliceJoin(*this, gs);
+    return StrSliceJoin(*this, iter);
 }
 
 Str StrSlice::Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count) const
@@ -455,13 +460,13 @@ GoSlice<Str> Str::Split(StrSlice sep) const
     return Slice().Split(sep).Map<Str>();
 }
 
-Str Str::Join(GoSlice<StrSlice> gs) const
+Str Str::Join(Iterator<StrSlice> *iter) const
 {
-    return Slice().Join(gs);
+    return Slice().Join(iter);
 }
-Str Str::Join(GoSlice<Str> gs) const
+Str Str::Join(Iterator<Str> *iter) const
 {
-    return Slice().Join(gs);
+    return Slice().Join(iter);
 }
 
 Str Sprintf(const char *fmt, ...)

@@ -116,7 +116,7 @@ public:
         l_.emplace_back(k, v);
         auto last_iter = l_.end();
         -- last_iter;
-        Assert(m_.insert(std::make_pair(k, last_iter)).second);
+        Assert(m_.insert(std::pair(k, last_iter)).second);
         sz_ += sz;
     }
 };

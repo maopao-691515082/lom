@@ -13,7 +13,7 @@ void SetErr(Str s, CodePos _cp)
 
 Str Err()
 {
-    return StrSlice("\n  from ").Join(err);
+    return StrSlice("\n  from ").Join(err.NewIter());
 }
 
 void PushErrBT(CodePos _cp)

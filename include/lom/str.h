@@ -3,6 +3,7 @@
 #include "_internal.h"
 
 #include "limit.h"
+#include "iter.h"
 
 namespace lom
 {
@@ -257,8 +258,8 @@ public:
     bool Unhex(Str &s) const;
 
     //以当前串为分隔符，链接输入的GoSlice中的所有串，返回结果
-    Str Join(GoSlice<StrSlice> gs) const;
-    Str Join(GoSlice<Str> gs) const;
+    Str Join(Iterator<StrSlice> *iter) const;
+    Str Join(Iterator<Str> *iter) const;
 
     /*
     在当前串中查找子串a，并返回等同于将其替换为指定串的结果的新Str
@@ -672,8 +673,8 @@ public:
         return Slice().Unhex(s);
     }
 
-    Str Join(GoSlice<StrSlice> gs) const;
-    Str Join(GoSlice<Str> gs) const;
+    Str Join(Iterator<StrSlice> *iter) const;
+    Str Join(Iterator<Str> *iter) const;
 
     Str Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count = kStrLenMax) const
     {

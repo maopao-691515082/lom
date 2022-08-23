@@ -5,6 +5,7 @@
 #include "lom/code_pos.h"
 #include "lom/err.h"
 #include "lom/go_slice.h"
+#include "lom/iter.h"
 #include "lom/limit.h"
 #include "lom/lru_cache.h"
 #include "lom/mem.h"

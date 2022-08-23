@@ -6,6 +6,7 @@
 #include "util.h"
 #include "limit.h"
 #include "str.h"
+#include "iter.h"
 
 namespace lom
 {
@@ -33,6 +34,10 @@ class GoSlice
 
         std::vector<T> a_;
 
+        Array()
+        {
+        }
+
         Array(ssize_t cap)
         {
             CapResize(cap);
@@ -42,8 +47,8 @@ class GoSlice
         {
         }
 
-        template <typename Iter>
-        Array(ssize_t cap, Iter b, Iter e) : a_(b, e)
+        template <typename InputIter>
+        Array(ssize_t cap, InputIter b, InputIter e) : a_(b, e)
         {
             CapResize(cap);
         }
@@ -60,8 +65,8 @@ class GoSlice
             CapResize(cap);
         }
 
-        template <typename Iter>
-        Array(ssize_t cap, VecIter b, VecIter e, Iter b2, Iter e2) : a_(b, e)
+        template <typename InputIter>
+        Array(ssize_t cap, VecIter b, VecIter e, InputIter b2, InputIter e2) : a_(b, e)
         {
             a_.insert(a_.end(), b2, e2);
             CapResize(cap);
@@ -97,12 +102,6 @@ class GoSlice
         return len;
     }
 
-    T &At(ssize_t idx) const
-    {
-        FixIdx(idx);
-        return a_->a_[start_ + idx];
-    }
-
     template <typename R>
     GoSlice<T> AppendOneElem(R t) const
     {
@@ -120,9 +119,9 @@ class GoSlice
         return GoSlice<T>(new Array(len + len / 2 + 1, b, e, static_cast<R>(t)), 0, len + 1);
     }
 
-    template <typename Iter>
+    template <typename InputIter>
     GoSlice<T> NewArrayAndAppend(
-        ssize_t curr_len, ssize_t curr_cap, ssize_t in_len, Iter in_begin, Iter in_end) const
+        ssize_t curr_len, ssize_t curr_cap, ssize_t in_len, InputIter in_begin, InputIter in_end) const
     {
         auto new_cap = curr_cap;
         while (new_cap < curr_len + in_len)
@@ -135,6 +134,28 @@ class GoSlice
         }
         auto b = a_->a_.begin() + start_, e = b + curr_len;
         return GoSlice<T>(new Array(new_cap, b, e, in_begin, in_end), 0, curr_len + in_len);
+    }
+
+    GoSlice<T> NewArrayAndAppend(
+        ssize_t curr_len, ssize_t curr_cap, ssize_t in_len, ::lom::Iterator<T> *iter) const
+    {
+        auto new_cap = curr_cap;
+        while (new_cap < curr_len + in_len)
+        {
+            new_cap += new_cap / 2 + 1;
+        }
+        Array *a =
+            a_ ?
+            new Array(new_cap, a_->a_.begin() + start_, a_->a_.begin() + (start_ + curr_len)) :
+            new Array(new_cap);
+        ssize_t idx = curr_len;
+        for (; iter->Valid(); iter->Inc())
+        {
+            a->a_[idx] = iter->Get();
+            ++ idx;
+        }
+        Assert(idx == curr_len + in_len);
+        return GoSlice<T>(a, 0, curr_len + in_len);
     }
 
 public:
@@ -157,9 +178,22 @@ public:
     {
     }
 
-    //通过初始化列表构建
+    //通过初始化列表或迭代器构建
     GoSlice(std::initializer_list<T> l) : a_(new Array(l)), start_(0), len_((ssize_t)l.size())
     {
+    }
+    GoSlice(::lom::Iterator<T> *iter)
+    {
+        a_ = new Array();
+        for (; iter->Valid(); iter->Inc())
+        {
+            a_->a_.emplace_back(iter->Get());
+        }
+        start_ = 0;
+        len_ = (ssize_t)a_->a_.size();
+
+        //不要浪费后面已经保留的空间
+        a_->a_.resize(a_->a_.capacity());
     }
 
     ssize_t Len() const
@@ -171,25 +205,11 @@ public:
         return a_ ? (ssize_t)a_->a_.size() - start_ : 0;
     }
 
-    T Get(ssize_t idx) const
+    //返回的是容器中元素的引用，可用于读写，调用者自行保证其不会失效
+    T &At(ssize_t idx) const
     {
-        return At(idx);
-    }
-    //注意GetCRef返回的是容器中元素的引用，调用者自行保证其不会失效
-    const T &GetCRef(ssize_t idx) const
-    {
-        return At(idx);
-    }
-
-    GoSlice<T> Set(ssize_t idx, const T &t) const
-    {
-        At(idx) = t;
-        return *this;
-    }
-    GoSlice<T> Set(ssize_t idx, T &&t) const
-    {
-        At(idx) = std::move(t);
-        return *this;
+        FixIdx(idx);
+        return a_->a_[start_ + idx];
     }
 
     //slice的获取是指定起始索引和长度，而不是Go和Python的惯例[begin, end)
@@ -224,7 +244,7 @@ public:
     {
         return AppendOneElem<T &&>(std::move(t));
     }
-    GoSlice<T> Append(std::initializer_list<T> l) const
+    GoSlice<T> AppendInitList(std::initializer_list<T> l) const
     {
         auto len = Len(), cap = Cap(), l_len = (ssize_t)l.size();
         if (cap - len >= l_len)
@@ -235,12 +255,13 @@ public:
                 a_->a_[idx] = *iter;
                 ++ idx;
             }
+            Assert(idx == start_ + len + l_len);
             return GoSlice<T>(a_, start_, len + l_len);
         }
         return NewArrayAndAppend(len, cap, l_len, l.begin(), l.end());
     }
     //这里和Go的实现一样，考虑到了区间重叠的情况
-    GoSlice<T> Append(GoSlice<T> s) const
+    GoSlice<T> AppendGoSlice(GoSlice<T> s) const
     {
         auto len = Len(), cap = Cap(), s_len = s.Len();
         if (cap - len >= s_len)
@@ -257,31 +278,106 @@ public:
         return NewArrayAndAppend(len, cap, s_len, sb, se);
     }
 
-    //遍历slice对象并对每个元素调用指定函数，注意是用T &传入，所以是可读可写的
-    GoSlice<T> Iter(std::function<void (ssize_t idx, T &)> f) const
+    class Iterator : public SizedIterator<T>
     {
-        auto len = Len();
-        for (ssize_t i = 0; i < len; ++ i)
+        GoSlice<T> gs_;
+        ssize_t idx_;
+
+        Iterator(const GoSlice<T> &gs, ssize_t idx) : gs_(gs), idx_(idx)
         {
-            f(i, a_->a_[start_ + i]);
         }
-        return *this;
-    }
-    GoSlice<T> Iter(std::function<void (T &)> f) const
+
+        friend class GoSlice<T>;
+
+    protected:
+
+        virtual void IncImpl(ssize_t step) override
+        {
+            idx_ += step;
+            if (idx_ < -1)
+            {
+                idx_ = -1;
+            }
+            if (idx_ > gs_.Len())
+            {
+                idx_ = gs_.Len();
+            }
+        }
+
+        virtual const T &GetImpl() const override
+        {
+            return gs_.At(idx_);
+        }
+
+        virtual ssize_t SizeImpl() const override
+        {
+            return gs_.Len() - idx_;
+        }
+
+    public:
+
+        typedef RCPtr<Iterator> Ptr;
+
+        virtual typename ::lom::Iterator<T>::Ptr Copy() const override
+        {
+            return new Iterator(gs_, idx_);
+        }
+
+        virtual bool Valid() const override
+        {
+            return idx_ >= 0 && idx_ < gs_.Len();
+        }
+
+        GoSlice<T> ToGoSlice() const
+        {
+            return Valid() ? gs_.Slice(idx_) : gs_.Nil();
+        }
+    };
+
+    GoSlice<T> AppendIter(SizedIterator<T> *iter) const
     {
-        return Iter([&] (ssize_t, T &t) {
-            f(t);
-        });
+        if (!iter->Valid())
+        {
+            return *this;
+        }
+
+        auto gs_iter = dynamic_cast<Iterator *>(iter);
+        if (gs_iter != nullptr)
+        {
+            //是同类型的GoSlice对象，走特化流程
+            return AppendGoSlice(gs_iter->ToGoSlice());
+        }
+
+        auto len = Len(), cap = Cap(), l_len = iter->Size();
+        if (cap - len >= l_len)
+        {
+            ssize_t idx = start_ + len;
+            for (; iter->Valid(); iter->Inc())
+            {
+                a_->a_[idx] = iter->Get();
+                ++ idx;
+            }
+            Assert(idx == start_ + len + l_len);
+            return GoSlice<T>(a_, start_, len + l_len);
+        }
+        return NewArrayAndAppend(len, cap, l_len, iter);
+    }
+
+    typename ::lom::SizedIterator<T>::Ptr NewIter() const
+    {
+        return new Iterator(*this, 0);
     }
 
     //遍历slice所有元素，对每个元素执行传入的函数，并将结果组成一个新的slice
     template <typename MT>
     GoSlice<MT> Map(std::function<MT (const T &)> f)
     {
-        GoSlice<MT> gs(Len());
-        Iter([&] (ssize_t idx, T &t) {
-            gs.Set(idx, f(t));
-        });
+        auto len = Len();
+        GoSlice<MT> gs(len);
+        for (ssize_t i = 0; i < len; ++ i)
+        {
+            gs.At(i) = f(a_->a_[start_ + i]);
+        }
         return gs;
     }
     //通用Map的快捷方式，对每个元素转为新类型
@@ -295,11 +391,11 @@ public:
 
     GoSlice<T> Copy() const
     {
-        return Nil().Append(*this);
+        return Nil().AppendGoSlice(*this);
     }
     GoSlice<T> CopyFrom(GoSlice<T> s) const
     {
-        Slice(0, 0).Append(s.Slice(0, std::min(Len(), s.Len())));
+        Slice(0, 0).AppendGoSlice(s.Slice(0, std::min(Len(), s.Len())));
         return *this;
     }
 

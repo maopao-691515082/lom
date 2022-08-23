@@ -81,7 +81,7 @@ public:
     {
         return AVLList<E>(AVL<E, int8_t>::Build(elems.template Map<std::pair<E, int8_t>>(
             [] (const E &e) -> std::pair<E, int8_t> {
-                return std::make_pair<E, int8_t>(e, 0);
+                return std::pair<E, int8_t>(e, 0);
             }
         )));
     }
@@ -156,11 +156,10 @@ public:
         }
 
         //使用者确保kvs合法，这里检查
-        const K *last_k = &kvs.GetCRef(0).first;
-        kvs.Slice(1).Iter([&] (std::pair<K, V> &p) {
-            Assert(*last_k < p.first);
-            last_k = &p.first;
-        });
+        for (ssize_t i = 1; i < kvs.Len(); ++ i)
+        {
+            Assert(kvs.At(i - 1).first < kvs.At(i).first);
+        }
         return AVLMap<K, V>(AVL<K, V>::Build(kvs));
     }
 };
@@ -215,7 +214,7 @@ public:
     {
         return AVLSet<E>(AVLMap<E, int8_t>::Build(elems.template Map<std::pair<E, int8_t>>(
             [] (const E &e) -> std::pair<E, int8_t> {
-                return std::make_pair<E, int8_t>(e, 0);
+                return std::pair<E, int8_t>(e, 0);
             }
         )));
     }

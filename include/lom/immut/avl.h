@@ -36,8 +36,7 @@ class AVL
 
     private:
 
-        template <typename Node>
-        friend class AVLUtil;
+        friend class AVLUtil<Node>;
 
         K k_;
         V v_;
@@ -106,7 +105,7 @@ class AVL
             {
                 return r_->GetByIdx(idx - left_sz - 1);
             }
-            return std::make_pair(&k_, &v_);
+            return std::pair(&k_, &v_);
         }
 
         static Ptr AddByIdx(const Node *node, ssize_t idx, const K &k, const V &v)
@@ -189,7 +188,7 @@ class AVL
         static Ptr Build(GoSlice<std::pair<K, V>> kvs)
         {
             return AVLUtil<Node>::Build([&kvs] (ssize_t idx) -> Ptr {
-                auto const &p = kvs.GetCRef(idx);
+                auto const &p = kvs.At(idx);
                 return new Node(p.first, p.second);
             }, 0, kvs.Len());
         }

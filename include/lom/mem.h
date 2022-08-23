@@ -42,6 +42,9 @@ protected:
     }
 };
 
+template <class T>
+class RCPtr;
+
 //RCPtr通过DeleterOfRCObjDerived来代理销毁对象，从而禁止了对RCObj的指针的delete（没析构访问权限）
 template <class D>
 class DeleterOfRCObjDerived
@@ -51,8 +54,7 @@ class DeleterOfRCObjDerived
         delete p;
     }
 
-    template<class T>
-    friend class RCPtr;
+    friend class RCPtr<D>;
 };
 
 template <class T>
@@ -153,7 +155,7 @@ public:
         return p_;
     }
 
-    operator bool () const
+    explicit operator bool () const
     {
         return p_ != nullptr;
     }
