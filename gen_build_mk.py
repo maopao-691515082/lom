@@ -7,6 +7,10 @@ os.chdir("src")
 dirs = set()
 files = []
 for d, _, fs in os.walk("."):
+    if d.startswith("./"):
+        d = d[2 :]
+    else:
+        assert d == "."
     for f in fs:
         if f.endswith(".cpp"):
             if d != ".":
