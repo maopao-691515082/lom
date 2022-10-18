@@ -22,3 +22,5 @@
 #include "lom/io/io.h"
 
 #include "lom/math/prime.h"
+
+#include "lom/fiber/fiber.h"

@@ -7,9 +7,13 @@
 #include <math.h>
 #include <signal.h>
 #include <stddef.h>
+#include <setjmp.h>
 
 #include <sys/time.h>
 #include <unistd.h>
+#include <sys/epoll.h>
+#include <sys/ioctl.h>
+#include <ucontext.h>
 
 #include "../include/lom.h"
 
