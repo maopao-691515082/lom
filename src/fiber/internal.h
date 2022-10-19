@@ -15,8 +15,15 @@ void AssertInited();
 bool InitFdEnv();
 bool InitSched();
 
-bool RegisterRawFdToSched(int fd);
-bool UnregisterRawFdFromSched(int fd);
+bool RegRawFdToSched(int fd);
+bool UnregRawFdFromSched(int fd);
+
+void RegSemToSched(Sem sem, uint64_t value);
+bool UnregSemFromSched(Sem sem);
+bool IsSemInSched(Sem sem);
+uint64_t TryAcquireSem(Sem sem, uint64_t acquire_value);
+void RestoreAcquiringSem(Sem sem, uint64_t acquiring_value);
+int ReleaseSem(Sem sem, uint64_t release_value);
 
 struct WaitingEvents
 {
@@ -33,6 +40,8 @@ struct WaitingEvents
     }
 };
 
+void SwitchToSchedFiber(const WaitingEvents &evs);
+
 class Fiber
 {
     std::function<void ()> run_;
@@ -43,15 +52,13 @@ class Fiber
     char *stk_;
     ssize_t stk_sz_;
 
-    bool low_priority_;
-
     int64_t seq_;
 
     WaitingEvents waiting_evs_;
 
     static void Start();
 
-    Fiber(std::function<void ()> run, ssize_t stk_sz, bool low_priority);
+    Fiber(std::function<void ()> run, ssize_t stk_sz);
 
     Fiber(const Fiber&) = delete;
     Fiber& operator=(const Fiber&) = delete;
@@ -63,11 +70,6 @@ public:
     bool IsFinished() const
     {
         return finished_;
-    }
-
-    bool &LowPriority()
-    {
-        return low_priority_;
     }
 
     jmp_buf *Ctx()
@@ -85,12 +87,12 @@ public:
         return waiting_evs_;
     }
 
-    static Fiber *New(std::function<void ()> run, ssize_t stk_sz, bool low_priority);
+    static Fiber *New(std::function<void ()> run, ssize_t stk_sz);
 
     void Destroy();
 };
 
-void RegisterFiber(Fiber *fiber);
+void RegFiber(Fiber *fiber);
 Fiber *GetCurrFiber();
 jmp_buf *GetSchedCtx();
 

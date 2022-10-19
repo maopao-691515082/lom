@@ -12,8 +12,7 @@ static thread_local int64_t next_fiber_seq = 1;
 static thread_local Fiber *initing_fiber;
 static thread_local ucontext_t fiber_init_ret_uctx;
 
-Fiber::Fiber(std::function<void ()> run, ssize_t stk_sz, bool low_priority) :
-    run_(run), finished_(false), stk_sz_(stk_sz), low_priority_(low_priority)
+Fiber::Fiber(std::function<void ()> run, ssize_t stk_sz) : run_(run), finished_(false), stk_sz_(stk_sz)
 {
     stk_ = new char[stk_sz_];
 
@@ -62,9 +61,9 @@ void Fiber::Start()
     }
 }
 
-Fiber *Fiber::New(std::function<void ()> run, ssize_t stk_sz, bool low_priority)
+Fiber *Fiber::New(std::function<void ()> run, ssize_t stk_sz)
 {
-    return new Fiber(run, stk_sz, low_priority);
+    return new Fiber(run, stk_sz);
 }
 
 void Fiber::Destroy()
@@ -72,7 +71,7 @@ void Fiber::Destroy()
     delete this;
 }
 
-void Create(std::function<void ()> run, ssize_t stk_sz, bool low_priority)
+void Create(std::function<void ()> run, ssize_t stk_sz)
 {
     AssertInited();
     if (stk_sz < kStkSizeMin)
@@ -83,7 +82,7 @@ void Create(std::function<void ()> run, ssize_t stk_sz, bool low_priority)
     {
         stk_sz = kStkSizeMax;
     }
-    RegisterFiber(Fiber::New(run, stk_sz, low_priority));
+    RegFiber(Fiber::New(run, stk_sz));
 }
 
 }

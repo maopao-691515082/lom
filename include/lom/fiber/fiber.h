@@ -2,6 +2,7 @@
 
 #include "../_internal.h"
 
+#include "_err.h"
 #include "_fd.h"
 #include "_sem.h"
 
@@ -25,18 +26,13 @@ void MustInit();    //init or die
 run为入口函数
 stk_sz指定栈大小，不在范围则调整至边界值
 */
-void Create(
-    std::function<void ()> run,
-    ssize_t stk_sz = 0, bool low_priority = false);
+void Create(std::function<void ()> run, ssize_t stk_sz = kStkSizeMin);
 
 //开始运行，除非出现内部错误，否则永远不退出
 void Run();
 
-//主动放弃执行，切换到调度器
 void Yield();
-
-//设置当前协程是否为低优先级调度
-void SetLowPriority(bool low_priority);
+int SleepMS(int64_t ms);
 
 }
 

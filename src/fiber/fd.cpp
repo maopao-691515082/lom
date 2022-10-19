@@ -26,7 +26,7 @@ bool InitFdEnv()
     return true;
 }
 
-bool Fd::Register(int fd)
+bool Fd::Reg(int fd)
 {
     AssertInited();
 
@@ -49,7 +49,7 @@ bool Fd::Register(int fd)
         return false;
     }
 
-    if (!RegisterRawFdToSched(fd))
+    if (!RegRawFdToSched(fd))
     {
         return false;
     }
@@ -60,7 +60,7 @@ bool Fd::Register(int fd)
     return true;
 }
 
-bool Fd::Unregister() const
+bool Fd::Unreg() const
 {
     AssertInited();
 
@@ -70,7 +70,7 @@ bool Fd::Unregister() const
         return false;
     }
 
-    bool ok = UnregisterRawFdFromSched(fd_);
+    bool ok = UnregRawFdFromSched(fd_);
     ++ FdSeq(fd_);
     return ok;
 }
@@ -88,7 +88,7 @@ bool Fd::Close() const
         return false;
     }
 
-    bool ok = Unregister();
+    bool ok = Unreg();
     if (close(fd_) == -1)
     {
         SetError("close fd failed");

@@ -21,10 +21,10 @@ public:
 
     bool IsValid() const;
 
-    int Acquire(size_t acquire_value = 1, int64_t timeout_ms = -1) const;
-    int Release(size_t release_value = 1) const;
+    int Acquire(uint64_t acquire_value = 1, int64_t timeout_ms = -1) const;
+    int Release(uint64_t release_value = 1) const;
 
-    static Sem New(size_t value);
+    static Sem New(uint64_t value);
 };
 
 }

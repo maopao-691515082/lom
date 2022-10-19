@@ -51,10 +51,10 @@ protected:
 
     /*
     注册一个fd，初始化这个对象，只能由派生类调用
-    由于新的Fd对象是无效的，因此对新对象也可以不判断Register的返回值，而是判断注册之后的IsValid
-    需要注意Register只能被成功调用一次，若对一个合法Fd对象Register，则失败，并且不会影响当前值
+    由于新的Fd对象是无效的，因此对新对象也可以不判断Reg的返回值，而是判断注册之后的IsValid
+    需要注意Reg只能被成功调用一次，若对一个合法Fd对象Reg，则失败，并且不会影响当前值
     */
-    bool Register(int fd);
+    bool Reg(int fd);
 
 public:
 
@@ -64,7 +64,7 @@ public:
     }
 
     //注销此fd，在fiber环境中等同于被关闭了，但是RawFd()返回的依然可被外部使用
-    bool Unregister() const;
+    bool Unreg() const;
 
     //判断此fd是否有效
     bool IsValid() const;
