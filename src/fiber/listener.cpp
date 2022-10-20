@@ -163,7 +163,7 @@ Listener ListenUnixSockStream(const char *path)
     return ListenStream(AF_UNIX, (struct sockaddr *)&addr, addr_len);
 }
 
-Listener ListenUnixSockStreamWithAbstractPath(const std::string &path)
+Listener ListenUnixSockStreamWithAbstractPath(Str path)
 {
     struct sockaddr_un addr;
     socklen_t addr_len;

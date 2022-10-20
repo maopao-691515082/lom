@@ -291,7 +291,7 @@ Conn ConnectUnixSockStream(const char *path, int64_t timeout_ms, int *err_code)
     return ConnectStreamSock(AF_UNIX, (struct sockaddr *)&addr, addr_len, timeout_ms, err_code);
 }
 
-Conn ConnectUnixSockStreamWithAbstractPath(const std::string &path, int64_t timeout_ms, int *err_code)
+Conn ConnectUnixSockStreamWithAbstractPath(Str path, int64_t timeout_ms, int *err_code)
 {
     struct sockaddr_un addr;
     socklen_t addr_len;
