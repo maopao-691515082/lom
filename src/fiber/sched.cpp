@@ -52,17 +52,17 @@ static void WakeUpFibers(const Fibers &fibers_to_wake_up)
             evs.expire_at_ = -1;
         }
 
-#define CLEAR_FIBER_FROM_IO_WAITING_FIBERS(_r_or_w) do {    \
-    for (auto fd : evs.waiting_fds_##_r_or_w##_) {          \
-        io_waiting_fibers[fd]._r_or_w##_.erase(fiber_seq);  \
-    }                                                       \
-    evs.waiting_fds_##_r_or_w##_.clear();                   \
+#define LOM_FIBER_SCHED_CLEAR_FIBER_FROM_IO_WAITING_FIBERS(_r_or_w) do {    \
+    for (auto fd : evs.waiting_fds_##_r_or_w##_) {                          \
+        io_waiting_fibers[fd]._r_or_w##_.erase(fiber_seq);                  \
+    }                                                                       \
+    evs.waiting_fds_##_r_or_w##_.clear();                                   \
 } while (false)
 
-        CLEAR_FIBER_FROM_IO_WAITING_FIBERS(r);
-        CLEAR_FIBER_FROM_IO_WAITING_FIBERS(w);
+        LOM_FIBER_SCHED_CLEAR_FIBER_FROM_IO_WAITING_FIBERS(r);
+        LOM_FIBER_SCHED_CLEAR_FIBER_FROM_IO_WAITING_FIBERS(w);
 
-#undef CLEAR_FIBER_FROM_IO_WAITING_FIBERS
+#undef LOM_FIBER_SCHED_CLEAR_FIBER_FROM_IO_WAITING_FIBERS
 
         for (Sem sem: evs.waiting_sems_)
         {
@@ -89,7 +89,7 @@ static bool RegCurrFiberWaitingEvs(const WaitingEvents &evs)
         expire_waiting_fibers[curr_evs.expire_at_][curr_fiber->Seq()] = curr_fiber;
     }
 
-#define REGISTER_CURR_FIBER_IO_WAITING_FIBERS(_r_or_w) do {                             \
+#define LOM_FIBER_SCHED_REGISTER_CURR_FIBER_IO_WAITING_FIBERS(_r_or_w) do {             \
     if (evs.waiting_fds_##_r_or_w##_.size() > 0) {                                      \
         ok = true;                                                                      \
         curr_evs.waiting_fds_##_r_or_w##_ = evs.waiting_fds_##_r_or_w##_;               \
@@ -101,10 +101,10 @@ static bool RegCurrFiberWaitingEvs(const WaitingEvents &evs)
     }                                                                                   \
 } while (false)
 
-    REGISTER_CURR_FIBER_IO_WAITING_FIBERS(r);
-    REGISTER_CURR_FIBER_IO_WAITING_FIBERS(w);
+    LOM_FIBER_SCHED_REGISTER_CURR_FIBER_IO_WAITING_FIBERS(r);
+    LOM_FIBER_SCHED_REGISTER_CURR_FIBER_IO_WAITING_FIBERS(w);
 
-#undef REGISTER_CURR_FIBER_IO_WAITING_FIBERS
+#undef LOM_FIBER_SCHED_REGISTER_CURR_FIBER_IO_WAITING_FIBERS
 
     if (evs.waiting_sems_.size() > 0)
     {
@@ -184,16 +184,16 @@ bool UnregRawFdFromSched(int fd)
 
     FdWaitingFibers &fd_waiting_fibers = fd_waiting_fibers_iter->second;
 
-#define WAKE_UP_ALL_FD_WAITING_FIBERS(_r_or_w) do {                     \
+#define LOM_FIBER_SCHED_WAKE_UP_ALL_FD_WAITING_FIBERS(_r_or_w) do {     \
     Fibers fibers_to_wake_up(std::move(fd_waiting_fibers._r_or_w##_));  \
     fd_waiting_fibers._r_or_w##_.clear();                               \
     WakeUpFibers(fibers_to_wake_up);                                    \
 } while (false)
 
-    WAKE_UP_ALL_FD_WAITING_FIBERS(r);
-    WAKE_UP_ALL_FD_WAITING_FIBERS(w);
+    LOM_FIBER_SCHED_WAKE_UP_ALL_FD_WAITING_FIBERS(r);
+    LOM_FIBER_SCHED_WAKE_UP_ALL_FD_WAITING_FIBERS(w);
 
-#undef WAKE_UP_ALL_FD_WAITING_FIBERS
+#undef LOM_FIBER_SCHED_WAKE_UP_ALL_FD_WAITING_FIBERS
 
     io_waiting_fibers.erase(fd_waiting_fibers_iter);
 
@@ -207,14 +207,14 @@ bool UnregRawFdFromSched(int fd)
     return true;
 }
 
-void RegisterSemToSched(Sem sem, uint64_t value)
+void RegSemToSched(Sem sem, uint64_t value)
 {
     AssertInited();
     Assert(sem_infos.count(sem) == 0);
     sem_infos[sem].value_ = value;
 }
 
-bool UnregisterSemFromSched(Sem sem)
+bool UnregSemFromSched(Sem sem)
 {
     AssertInited();
 
@@ -459,7 +459,7 @@ void Run()
                     }
                     FdWaitingFibers &fd_waiting_fibers = fd_waiting_fibers_iter->second;
 
-#define WAKE_UP_BY_EVENT(_ev, _r_or_w) do {                                 \
+#define LOM_FIBER_SCHED_WAKE_UP_BY_EVENT(_ev, _r_or_w) do {                 \
     if (ev.events & (EPOLL##_ev | EPOLLERR | EPOLLHUP)) {                   \
         Fibers fibers_to_wake_up(std::move(fd_waiting_fibers._r_or_w##_));  \
         fd_waiting_fibers._r_or_w##_.clear();                               \
@@ -467,10 +467,10 @@ void Run()
     }                                                                       \
 } while (false)
 
-                    WAKE_UP_BY_EVENT(IN, r);
-                    WAKE_UP_BY_EVENT(OUT, w);
+                    LOM_FIBER_SCHED_WAKE_UP_BY_EVENT(IN, r);
+                    LOM_FIBER_SCHED_WAKE_UP_BY_EVENT(OUT, w);
 
-#undef WAKE_UP_BY_EVENT
+#undef LOM_FIBER_SCHED_WAKE_UP_BY_EVENT
 
                 }
             }

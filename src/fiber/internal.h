@@ -96,6 +96,9 @@ void RegFiber(Fiber *fiber);
 Fiber *GetCurrFiber();
 jmp_buf *GetSchedCtx();
 
+bool PathToUnixSockAddr(const char *path, struct sockaddr_un &addr, socklen_t &addr_len);
+bool AbstractPathToUnixSockAddr(const std::string &path, struct sockaddr_un &addr, socklen_t &addr_len);
+
 }
 
 }

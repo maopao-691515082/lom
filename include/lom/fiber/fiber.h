@@ -4,6 +4,8 @@
 
 #include "_err.h"
 #include "_fd.h"
+#include "_conn.h"
+#include "_listener.h"
 #include "_sem.h"
 
 namespace lom
