@@ -14,6 +14,7 @@
 #include "lom/time.h"
 #include "lom/token_bucket.h"
 #include "lom/util.h"
+#include "lom/var_int.h"
 
 #include "lom/immut/avl_ds.h"
 #include "lom/immut/avl_util.h"

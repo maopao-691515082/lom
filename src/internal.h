@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <stddef.h>
 #include <setjmp.h>
+#include <endian.h>
 
 #include <sys/time.h>
 #include <unistd.h>
