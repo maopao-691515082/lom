@@ -150,7 +150,8 @@ Listener ListenTCP(uint16_t port)
     listen_addr.sin_addr.s_addr = INADDR_ANY;
     listen_addr.sin_port = htons(port);
 
-    return ListenStream(AF_INET, (struct sockaddr *)&listen_addr, sizeof(listen_addr), listen_fd);
+    return ListenStream(
+        AF_INET, reinterpret_cast<struct sockaddr *>(&listen_addr), sizeof(listen_addr), listen_fd);
 }
 
 Listener ListenUnixSockStream(const char *path)
@@ -159,12 +160,10 @@ Listener ListenUnixSockStream(const char *path)
     socklen_t addr_len;
     if (!PathToUnixSockAddr(path, addr, addr_len))
     {
-        SetError(Sprintf("unix socket path is empty or too long [%s]", path));
-        errno = EINVAL;
         return Listener();
     }
 
-    return ListenStream(AF_UNIX, (struct sockaddr *)&addr, addr_len);
+    return ListenStream(AF_UNIX, reinterpret_cast<struct sockaddr *>(&addr), addr_len);
 }
 
 Listener ListenUnixSockStreamWithAbstractPath(const Str &path)
@@ -173,12 +172,10 @@ Listener ListenUnixSockStreamWithAbstractPath(const Str &path)
     socklen_t addr_len;
     if (!AbstractPathToUnixSockAddr(path, addr, addr_len))
     {
-        SetError("unix socket abstract path too long");
-        errno = EINVAL;
         return Listener();
     }
 
-    return ListenStream(AF_UNIX, (struct sockaddr *)&addr, addr_len);
+    return ListenStream(AF_UNIX, reinterpret_cast<struct sockaddr *>(&addr), addr_len);
 }
 
 }

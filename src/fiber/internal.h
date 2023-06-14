@@ -8,7 +8,7 @@ namespace lom
 namespace fiber
 {
 
-void SetError(Str s, CodePos _cp = CodePos());
+void SetError(const Str &s, CodePos _cp = CodePos());
 void SilentClose(int fd);
 
 void AssertInited();
@@ -97,7 +97,7 @@ Fiber *GetCurrFiber();
 jmp_buf *GetSchedCtx();
 
 bool PathToUnixSockAddr(const char *path, struct sockaddr_un &addr, socklen_t &addr_len);
-bool AbstractPathToUnixSockAddr(Str path, struct sockaddr_un &addr, socklen_t &addr_len);
+bool AbstractPathToUnixSockAddr(const Str &path, struct sockaddr_un &addr, socklen_t &addr_len);
 
 }
 

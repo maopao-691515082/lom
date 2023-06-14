@@ -64,23 +64,26 @@ static ssize_t InternalWrite(Conn conn, const char *buf, ssize_t sz, int64_t exp
         return err_code::kInvalid;
     }
 
-    for (;;)
+    if (sz > 0)
     {
-        ssize_t ret = write(conn.RawFd(), buf, (size_t)sz);
-        if (ret > 0)
+        for (;;)
         {
-            return ret;
-        }
-        if (ret == 0)
-        {
-            if (expire_at >= 0 && expire_at <= NowMS())
+            ssize_t ret = write(conn.RawFd(), buf, (size_t)sz);
+            if (ret > 0)
             {
-                SetError("timeout");
-                return err_code::kTimeout;
+                return ret;
             }
-            continue;
+            if (ret == 0)
+            {
+                if (expire_at >= 0 && expire_at <= NowMS())
+                {
+                    SetError("timeout");
+                    return err_code::kTimeout;
+                }
+                continue;
+            }
+            LOM_FIBER_CONN_ON_IO_SYS_CALL_ERR(w);
         }
-        LOM_FIBER_CONN_ON_IO_SYS_CALL_ERR(w);
     }
 
     return 0;
@@ -132,7 +135,7 @@ ssize_t Conn::Read(char *buf, ssize_t sz, int64_t timeout_ms) const
 
 ssize_t Conn::Write(const char *buf, ssize_t sz, int64_t timeout_ms) const
 {
-    if (sz <= 0)
+    if (sz < 0)
     {
         return err_code::kInvalid;
     }
@@ -143,7 +146,7 @@ ssize_t Conn::Write(const char *buf, ssize_t sz, int64_t timeout_ms) const
 
 int Conn::WriteAll(const char *buf, ssize_t sz, int64_t timeout_ms) const
 {
-    if (sz <= 0)
+    if (sz < 0)
     {
         return err_code::kInvalid;
     }
@@ -263,8 +266,14 @@ Conn ConnectTCP(const char *ip, uint16_t port, int64_t timeout_ms, int *err_code
     addr.sin_family = AF_INET;
     if (inet_aton(ip, &addr.sin_addr) == 0)
     {
-        SetError(Sprintf("invalid ip [%s]", ip));
+        /*
+        inet_aton不是sys call，但这里将其模拟为一个sys call的返回行为
+        参考`man inet_aton`:
+            inet_aton() returns 1 if the supplied string was successfully interpreted,
+            or 0 if the string is invalid (errno is not set on error).
+        */
         errno = EINVAL;
+        SetError(Sprintf("invalid ip [%s]", ip));
         if (err_code != nullptr)
         {
             *err_code = err_code::kSysCallFailed;
@@ -273,7 +282,8 @@ Conn ConnectTCP(const char *ip, uint16_t port, int64_t timeout_ms, int *err_code
     }
     addr.sin_port = htons(port);
 
-    return ConnectStreamSock(AF_INET, (struct sockaddr *)&addr, sizeof(addr), timeout_ms, err_code);
+    return ConnectStreamSock(
+        AF_INET, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr), timeout_ms, err_code);
 }
 
 Conn ConnectUnixSockStream(const char *path, int64_t timeout_ms, int *err_code)
@@ -282,8 +292,6 @@ Conn ConnectUnixSockStream(const char *path, int64_t timeout_ms, int *err_code)
     socklen_t addr_len;
     if (!PathToUnixSockAddr(path, addr, addr_len))
     {
-        SetError(Sprintf("unix socket path is empty or too long [%s]", path));
-        errno = EINVAL;
         if (err_code != nullptr)
         {
             *err_code = err_code::kSysCallFailed;
@@ -291,7 +299,8 @@ Conn ConnectUnixSockStream(const char *path, int64_t timeout_ms, int *err_code)
         return Conn();
     }
 
-    return ConnectStreamSock(AF_UNIX, (struct sockaddr *)&addr, addr_len, timeout_ms, err_code);
+    return ConnectStreamSock(
+        AF_UNIX, reinterpret_cast<struct sockaddr *>(&addr), addr_len, timeout_ms, err_code);
 }
 
 Conn ConnectUnixSockStreamWithAbstractPath(const Str &path, int64_t timeout_ms, int *err_code)
@@ -300,8 +309,6 @@ Conn ConnectUnixSockStreamWithAbstractPath(const Str &path, int64_t timeout_ms, 
     socklen_t addr_len;
     if (!AbstractPathToUnixSockAddr(path, addr, addr_len))
     {
-        SetError("unix socket abstract path too long");
-        errno = EINVAL;
         if (err_code != nullptr)
         {
             *err_code = err_code::kSysCallFailed;
@@ -309,7 +316,8 @@ Conn ConnectUnixSockStreamWithAbstractPath(const Str &path, int64_t timeout_ms, 
         return Conn();
     }
 
-    return ConnectStreamSock(AF_UNIX, (struct sockaddr *)&addr, addr_len, timeout_ms, err_code);
+    return ConnectStreamSock(
+        AF_UNIX, reinterpret_cast<struct sockaddr *>(&addr), addr_len, timeout_ms, err_code);
 }
 
 }

@@ -60,7 +60,7 @@ int Sem::Acquire(uint64_t acquire_value, int64_t timeout_ms) const
 
         if (!Valid())
         {
-            SetError("sem destroyed by other fiber");
+            SetError("sem destroyed by another fiber");
             return err_code::kClosed;
         }
     }

@@ -13,7 +13,7 @@ class Conn : public Fd
 public:
 
     /*
-    读数据
+    读数据，sz必须>0
     返回值：
         >0：读到的字节数
         0：文件结束
@@ -23,17 +23,17 @@ public:
     ssize_t Read(char *buf, ssize_t sz, int64_t timeout_ms = -1) const;
 
     /*
-    写数据，允许部分成功（写入至少1字节就会成功返回）
+    写数据，sz必须>=0，sz为0时仅做有效性检查，sz>0时允许部分成功（写入至少1字节就会成功返回）
     返回值：
         >0：成功写入的字节数
-        //不会返回0
+        0：仅当sz为0且通过了有效性检查时返回，表示成功
         -1：系统调用错误，可使用errno
         <-1：err_code中定义的内部错误码
     */
     ssize_t Write(const char *buf, ssize_t sz, int64_t timeout_ms = -1) const;
 
     /*
-    写数据，成功则保证写完
+    写数据，成功则保证写完，sz必须>=0，sz为0时仅做有效性检查
     返回值：
         0：成功
         -1：系统调用错误，可使用errno
