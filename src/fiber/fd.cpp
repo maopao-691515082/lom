@@ -64,7 +64,7 @@ bool Fd::Unreg() const
 {
     AssertInited();
 
-    if (!IsValid())
+    if (!Valid())
     {
         SetError("fd is invalid");
         return false;
@@ -75,14 +75,14 @@ bool Fd::Unreg() const
     return ok;
 }
 
-bool Fd::IsValid() const
+bool Fd::Valid() const
 {
     return fd_ >= 0 && seq_ == FdSeq(fd_);
 }
 
 bool Fd::Close() const
 {
-    if (!IsValid())
+    if (!Valid())
     {
         SetError("fd is invalid");
         return false;

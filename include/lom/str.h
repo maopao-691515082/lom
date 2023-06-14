@@ -60,15 +60,15 @@ public:
     }
 
     //空切片
-    StrSlice() : StrSlice(nullptr, 0, false)
+    StrSlice() : StrSlice("", 0, true)
     {
     }
 
     //从各种字符串构建
-    StrSlice(const char *s) : StrSlice(s, (ssize_t)strlen(s), true)
+    StrSlice(const char *s) : StrSlice(s, static_cast<ssize_t>(strlen(s)), true)
     {
     }
-    StrSlice(const std::string &s) : StrSlice(s.c_str(), (ssize_t)s.size(), true)
+    StrSlice(const std::string &s) : StrSlice(s.c_str(), static_cast<ssize_t>(s.size()), true)
     {
     }
     StrSlice(const Str &s);
@@ -79,7 +79,7 @@ public:
     }
     ssize_t Len() const
     {
-        return ((ssize_t)len_high_ << 32) + (ssize_t)len_low_;
+        return (static_cast<ssize_t>(len_high_) << 32) + len_low_;
     }
 
     char Get(ssize_t idx) const
@@ -135,7 +135,7 @@ public:
         auto data = Data();
         for (ssize_t i = Len() - 1; i >= 0; -- i)
         {
-            if ((unsigned char)data[i] == b)
+            if (static_cast<unsigned char>(data[i]) == b)
             {
                 return i;
             }
@@ -271,8 +271,8 @@ public:
     Str Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count = kStrLenMax) const;
     Str Replace(StrSlice a, StrSlice b, ssize_t max_count = kStrLenMax) const;
 
+    //字符串连接，返回连接后的结果
     Str Concat(StrSlice s) const;
-    Str Concat(Str s) const;
 };
 
 /*
@@ -428,7 +428,7 @@ public:
     }
     ssize_t Len() const
     {
-        return IsLongStr() ? ((ssize_t)ls_len_high_ << 32) + (ssize_t)ls_len_low_ : ss_len_;
+        return IsLongStr() ? (static_cast<ssize_t>(ls_len_high_) << 32) + ls_len_low_ : ss_len_;
     }
     //类似STL的string的c_str方法，Str对象会保证末尾有额外的\0，所以直接按C风格字符串访问是没问题的
     const char *CStr() const
@@ -689,16 +689,12 @@ public:
     {
         return Slice().Concat(s);
     }
-    Str Concat(Str s) const
-    {
-        return Slice().Concat(s.Slice());
-    }
 };
 
 /*
 类似标准库的sprintf，但不是打印到给定buf，而是打印成一个Str对象
 输入参数语法和printf族的规定一致
 */
-Str Sprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+Str Sprintf(const char *fmt, ...) __attribute__((format(gnu_printf, 1, 2)));
 
 }

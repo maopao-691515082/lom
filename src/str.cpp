@@ -302,16 +302,16 @@ Str Str::FromUInt64(uint64_t n)
     return p;
 }
 
-#define LOM_STR_SLICE_UOLER(_conv_ch) do {  \
-    auto data = Data();                     \
-    auto len = Len();                       \
-    Str::Buf b(len);                        \
-    auto p = b.Data();                      \
-    for (ssize_t i = 0; i < len; ++ i)      \
-    {                                       \
-        p[i] = _conv_ch(data[i]);           \
-    }                                       \
-    return Str(std::move(b));               \
+#define LOM_STR_SLICE_UOLER(_conv_ch) do {                      \
+    auto data = Data();                                         \
+    auto len = Len();                                           \
+    Str::Buf b(len);                                            \
+    auto p = b.Data();                                          \
+    for (ssize_t i = 0; i < len; ++ i)                          \
+    {                                                           \
+        p[i] = _conv_ch(static_cast<unsigned char>(data[i]));   \
+    }                                                           \
+    return Str(std::move(b));                                   \
 } while (false)
 
 Str StrSlice::Upper() const
@@ -503,11 +503,6 @@ Str StrSlice::Concat(StrSlice s) const
     memcpy(p, Data(), len);
     memcpy(p + len, s.Data(), s_len);
     return Str(std::move(b));
-}
-
-Str StrSlice::Concat(Str s) const
-{
-    return Concat(s.Slice());
 }
 
 }

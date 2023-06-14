@@ -11,14 +11,14 @@ bool Sem::Destroy() const
     return UnregSemFromSched(*this);
 }
 
-bool Sem::IsValid() const
+bool Sem::Valid() const
 {
     return seq_ >= 0 && IsSemInSched(*this);
 }
 
 int Sem::Acquire(uint64_t acquire_value, int64_t timeout_ms) const
 {
-    if (!IsValid())
+    if (!Valid())
     {
         SetError("invalid sem");
         return err_code::kInvalid;
@@ -58,7 +58,7 @@ int Sem::Acquire(uint64_t acquire_value, int64_t timeout_ms) const
         evs.waiting_sems_.emplace_back(*this);
         SwitchToSchedFiber(evs);
 
-        if (!IsValid())
+        if (!Valid())
         {
             SetError("sem destroyed by other fiber");
             return err_code::kClosed;

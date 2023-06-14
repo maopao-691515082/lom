@@ -67,7 +67,7 @@ Conn ConnectUnixSockStream(const char *path, int64_t timeout_ms = -1, int *err_c
 因此path的size不能超过sockaddr_un.sun_path的大小减一
 其他输入参数含义和返回行为同ConnectUnixSockStream
 */
-Conn ConnectUnixSockStreamWithAbstractPath(Str path, int64_t timeout_ms = -1, int *err_code = nullptr);
+Conn ConnectUnixSockStreamWithAbstractPath(const Str &path, int64_t timeout_ms = -1, int *err_code = nullptr);
 
 }
 

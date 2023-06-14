@@ -30,6 +30,6 @@ public:
 注意不是普通exit，不会执行语言级别的收尾工作，主要是为了避免全局变量析构顺序的不确定导致的问题
 如果需要收尾，请自行实现exit
 */
-void Die(Str msg = "", CodePos _cp = CodePos());
+void Die(const Str &msg = "", CodePos _cp = CodePos());
 
 }

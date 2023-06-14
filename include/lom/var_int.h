@@ -3,6 +3,7 @@
 #include "_internal.h"
 
 #include "str.h"
+#include "io/io.h"
 
 namespace lom
 {
@@ -27,6 +28,10 @@ Decode函数在成功时会调整p和sz，消费掉本次解码的长度
 */
 bool Decode(const char *&p, ssize_t &sz, int64_t &n);
 bool DecodeUInt(const char *&p, ssize_t &sz, uint64_t &n);
+
+//从buf reader中读取
+bool LoadFrom(const io::BufReader::Ptr &br, int64_t &n);
+bool LoadUIntFrom(const io::BufReader::Ptr &br, uint64_t &n);
 
 }
 

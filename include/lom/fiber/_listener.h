@@ -38,7 +38,7 @@ Listener ListenUnixSockStream(const char *path);
 类似ListenUnixSockStream，但是使用Linux的抽象路径机制，输入的path不需要带首位的\0，接口会自动补上，
 因此path的长度不能超过sockaddr_un.sun_path的大小减一
 */
-Listener ListenUnixSockStreamWithAbstractPath(Str path);
+Listener ListenUnixSockStreamWithAbstractPath(const Str &path);
 
 }
 

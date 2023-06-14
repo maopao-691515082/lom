@@ -17,7 +17,7 @@ Conn Listener::Accept(int64_t timeout_ms, int *err_code) const
     return Conn();                                              \
 } while (false)
 
-    if (!IsValid())
+    if (!Valid())
     {
         LOM_FIBER_LISTENER_ERR_RETURN("invalid listener", kInvalid);
     }
@@ -30,7 +30,7 @@ Conn Listener::Accept(int64_t timeout_ms, int *err_code) const
         if (fd >= 0)
         {
             Conn conn = Conn::FromRawFd(fd);
-            if (conn.IsValid())
+            if (conn.Valid())
             {
                 //set tcp nodelay as possible
                 int enable = 1;
@@ -52,6 +52,10 @@ Conn Listener::Accept(int64_t timeout_ms, int *err_code) const
             return conn;
         }
         Assert(fd == -1 && errno != 0);
+        if (errno == EWOULDBLOCK)
+        {
+            errno = EAGAIN;
+        }
         if (errno != EAGAIN && errno != EINTR)
         {
             LOM_FIBER_LISTENER_ERR_RETURN("syscall error", kSysCallFailed);
@@ -66,7 +70,7 @@ Conn Listener::Accept(int64_t timeout_ms, int *err_code) const
             evs.expire_at_ = expire_at;
             evs.waiting_fds_r_.emplace_back(RawFd());
             SwitchToSchedFiber(evs);
-            if (!IsValid())
+            if (!Valid())
             {
                 LOM_FIBER_LISTENER_ERR_RETURN("listener closed by other fiber", kClosed);
             }
@@ -115,7 +119,7 @@ static Listener ListenStream(int socket_family, struct sockaddr *addr, socklen_t
 #undef LOM_FIBER_LISTENER_ERR_RETURN
 
     Listener listener = Listener::FromRawFd(listen_fd);
-    if (!listener.IsValid())
+    if (!listener.Valid())
     {
         SilentClose(listen_fd);
     }
@@ -163,7 +167,7 @@ Listener ListenUnixSockStream(const char *path)
     return ListenStream(AF_UNIX, (struct sockaddr *)&addr, addr_len);
 }
 
-Listener ListenUnixSockStreamWithAbstractPath(Str path)
+Listener ListenUnixSockStreamWithAbstractPath(const Str &path)
 {
     struct sockaddr_un addr;
     socklen_t addr_len;

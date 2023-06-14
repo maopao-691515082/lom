@@ -299,6 +299,104 @@ bool DecodeUInt(const char *&p, ssize_t &sz, uint64_t &n)
     return false;
 }
 
+static bool LoadEncodedFrom(const io::BufReader::Ptr &br, std::string &s)
+{
+    s.resize(1);
+    ssize_t ret = br->ReadFull(&s[0], 1);
+    if (ret != 1)
+    {
+        ret < 0 ?
+            PushErrBT() :
+            SetErr("ReadFull first byte failed: EOF");
+        return false;
+    }
+
+    ssize_t remain_len = 0;
+    auto b = static_cast<uint8_t>(s[0]);
+    if (b == 0x0F || b == 0xF8)
+    {
+        remain_len = 8;
+    }
+    else if ((b & 0xF0) == 0x10 || (b & 0xF8) == 0xF0)
+    {
+        remain_len = 5;
+    }
+    else if ((b & 0xF0) == 0xE0)
+    {
+        remain_len = 3;
+    }
+    else if ((b & 0xE0) == 0x20)
+    {
+        remain_len = 2;
+    }
+    else if ((b & 0xE0) == 0xC0)
+    {
+        remain_len = 1;
+    }
+    else if ((b & 0xC0) == 0x40 || (b & 0xC0) == 0x80)
+    {
+        remain_len = 0;
+    }
+    else
+    {
+        SetErr(Sprintf("invalid first byte [0x%02X]", b));
+        return false;
+    }
+
+    if (remain_len > 0)
+    {
+        s.resize(1 + static_cast<size_t>(remain_len));
+        ret = br->ReadFull(&s[1], remain_len);
+        if (ret != remain_len)
+        {
+            ret < 0 ?
+                PushErrBT() :
+                SetErr(Sprintf("ReadFull remain_len [%zd] failed, ret [%zd]", remain_len, ret));
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool LoadFrom(const io::BufReader::Ptr &br, int64_t &n)
+{
+    std::string s;
+    if (!LoadEncodedFrom(br, s))
+    {
+        PushErrBT();
+        return false;
+    }
+    const char *p = s.data();
+    ssize_t sz = static_cast<ssize_t>(s.size());
+    if (!Decode(p, sz, n))
+    {
+        SetErr(Sprintf("decode int64 failed"));
+        return false;
+    }
+    Assert(sz == 0);
+    return true;
+}
+
+bool LoadUIntFrom(const io::BufReader::Ptr &br, uint64_t &n)
+{
+    std::string s;
+    if (!LoadEncodedFrom(br, s))
+    {
+        PushErrBT();
+        return false;
+    }
+    const char *p = s.data();
+    ssize_t sz = static_cast<ssize_t>(s.size());
+    if (!DecodeUInt(p, sz, n))
+    {
+        SetErr(Sprintf("decode uint64 failed"));
+        return false;
+    }
+    Assert(sz == 0);
+    return true;
+}
+
 }
 
 }

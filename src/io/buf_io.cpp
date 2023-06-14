@@ -183,7 +183,12 @@ public:
 
     virtual int WriteAll(const char *buf, ssize_t sz) override
     {
-        LOM_IO_CHECK_NON_POSITIVE_SIZE_PARAM(sz);
+        if (sz < 0)
+        {
+            SetErr("negative size");
+            errno = EINVAL;
+            return -1;
+        }
 
         while (sz > 0)
         {

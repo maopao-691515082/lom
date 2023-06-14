@@ -36,6 +36,15 @@ protected:
         return *this;
     }
 
+    /*
+    注册一个fd，初始化这个对象，只能由派生类调用
+    由于新的Fd对象是无效的，因此对新对象也可以不判断Reg的返回值，而是判断注册之后的IsValid
+    需要注意Reg只能被成功调用一次，若对一个合法Fd对象Reg，则失败，并且不会影响当前值
+    */
+    bool Reg(int fd);
+
+public:
+
     bool operator<(const Fd &other) const
     {
         if (fd_ < other.fd_)
@@ -49,15 +58,6 @@ protected:
         return seq_ < other.seq_;
     }
 
-    /*
-    注册一个fd，初始化这个对象，只能由派生类调用
-    由于新的Fd对象是无效的，因此对新对象也可以不判断Reg的返回值，而是判断注册之后的IsValid
-    需要注意Reg只能被成功调用一次，若对一个合法Fd对象Reg，则失败，并且不会影响当前值
-    */
-    bool Reg(int fd);
-
-public:
-
     int RawFd() const
     {
         return fd_;
@@ -67,7 +67,7 @@ public:
     bool Unreg() const;
 
     //判断此fd是否有效
-    bool IsValid() const;
+    bool Valid() const;
 
     //关闭一个fd，同时会将其注销，注意方法是const的，并不会修改此对象的值，后续继续使用此对象则行为未定义
     bool Close() const;

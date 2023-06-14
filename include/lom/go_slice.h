@@ -74,8 +74,9 @@ class GoSlice
 
         void CapResize(ssize_t cap)
         {
-            Assert((ssize_t)a_.size() <= cap && cap <= kSSizeSoftMax / (ssize_t)sizeof(T));
-            a_.resize((size_t)cap);
+            Assert(static_cast<ssize_t>(a_.size()) <= cap &&
+                   cap <= kSSizeSoftMax / static_cast<ssize_t>(sizeof(T)));
+            a_.resize(static_cast<ssize_t>(cap));
         }
     };
 
@@ -179,7 +180,7 @@ public:
     }
 
     //通过初始化列表或迭代器构建
-    GoSlice(std::initializer_list<T> l) : a_(new Array(l)), start_(0), len_((ssize_t)l.size())
+    GoSlice(std::initializer_list<T> l) : a_(new Array(l)), start_(0), len_(static_cast<ssize_t>(l.size()))
     {
     }
     GoSlice(::lom::Iterator<T> *iter)
@@ -190,7 +191,7 @@ public:
             a_->a_.emplace_back(iter->Get());
         }
         start_ = 0;
-        len_ = (ssize_t)a_->a_.size();
+        len_ = static_cast<ssize_t>(a_->a_.size());
 
         //不要浪费后面已经保留的空间
         a_->a_.resize(a_->a_.capacity());
@@ -202,7 +203,7 @@ public:
     }
     ssize_t Cap() const
     {
-        return a_ ? (ssize_t)a_->a_.size() - start_ : 0;
+        return a_ ? static_cast<ssize_t>(a_->a_.size()) - start_ : 0;
     }
 
     //返回的是容器中元素的引用，可用于读写，调用者自行保证其不会失效
@@ -246,7 +247,7 @@ public:
     }
     GoSlice<T> AppendInitList(std::initializer_list<T> l) const
     {
-        auto len = Len(), cap = Cap(), l_len = (ssize_t)l.size();
+        auto len = Len(), cap = Cap(), l_len = static_cast<ssize_t>(l.size());
         if (cap - len >= l_len)
         {
             ssize_t idx = start_ + len;
@@ -261,7 +262,7 @@ public:
         return NewArrayAndAppend(len, cap, l_len, l.begin(), l.end());
     }
     //这里和Go的实现一样，考虑到了区间重叠的情况
-    GoSlice<T> AppendGoSlice(GoSlice<T> s) const
+    GoSlice<T> AppendGoSlice(const GoSlice<T> &s) const
     {
         auto len = Len(), cap = Cap(), s_len = s.Len();
         if (cap - len >= s_len)
@@ -278,7 +279,7 @@ public:
         return NewArrayAndAppend(len, cap, s_len, sb, se);
     }
 
-    class Iterator : public SizedIterator<T>
+    class Iterator final : public SizedIterator<T>
     {
         GoSlice<T> gs_;
         ssize_t idx_;
@@ -401,7 +402,7 @@ public:
     {
         return Nil().AppendGoSlice(*this);
     }
-    GoSlice<T> CopyFrom(GoSlice<T> s) const
+    GoSlice<T> CopyFrom(const GoSlice<T> &s) const
     {
         Slice(0, 0).AppendGoSlice(s.Slice(0, std::min(Len(), s.Len())));
         return *this;

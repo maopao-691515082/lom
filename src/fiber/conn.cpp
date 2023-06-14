@@ -14,6 +14,9 @@ namespace fiber
         SetError("connection reset by peer");                       \
         return err_code::kConnReset;                                \
     }                                                               \
+    if (errno == EWOULDBLOCK) {                                     \
+        errno = EAGAIN;                                             \
+    }                                                               \
     if (errno != EAGAIN && errno != EINTR) {                        \
         SetError("syscall error");                                  \
         return err_code::kSysCallFailed;                            \
@@ -27,7 +30,7 @@ namespace fiber
         evs.expire_at_ = expire_at;                                 \
         evs.waiting_fds_##_r_or_w##_.emplace_back(conn.RawFd());    \
         SwitchToSchedFiber(evs);                                    \
-        if (!conn.IsValid()) {                                      \
+        if (!conn.Valid()) {                                        \
             SetError("conn closed by other fiber");                 \
             return err_code::kClosed;                               \
         }                                                           \
@@ -36,7 +39,7 @@ namespace fiber
 
 static ssize_t InternalRead(Conn conn, char *buf, ssize_t sz, int64_t expire_at)
 {
-    if (!conn.IsValid())
+    if (!conn.Valid())
     {
         SetError("invalid conn");
         return err_code::kInvalid;
@@ -55,7 +58,7 @@ static ssize_t InternalRead(Conn conn, char *buf, ssize_t sz, int64_t expire_at)
 
 static ssize_t InternalWrite(Conn conn, const char *buf, ssize_t sz, int64_t expire_at)
 {
-    if (!conn.IsValid())
+    if (!conn.Valid())
     {
         SetError("invalid conn");
         return err_code::kInvalid;
@@ -85,7 +88,7 @@ static ssize_t InternalWrite(Conn conn, const char *buf, ssize_t sz, int64_t exp
 
 static int InternalWriteAll(Conn conn, const char *buf, ssize_t sz, int64_t expire_at)
 {
-    if (!conn.IsValid())
+    if (!conn.Valid())
     {
         SetError("invalid conn");
         return err_code::kInvalid;
@@ -191,7 +194,7 @@ static Conn ConnectStreamSock(
 #undef LOM_FIBER_CONN_ERR_RETURN
 
     Conn conn = Conn::FromRawFd(conn_sock);
-    if (!conn.IsValid())
+    if (!conn.Valid())
     {
         SilentClose(conn_sock);
         if (err_code != nullptr)
@@ -291,7 +294,7 @@ Conn ConnectUnixSockStream(const char *path, int64_t timeout_ms, int *err_code)
     return ConnectStreamSock(AF_UNIX, (struct sockaddr *)&addr, addr_len, timeout_ms, err_code);
 }
 
-Conn ConnectUnixSockStreamWithAbstractPath(Str path, int64_t timeout_ms, int *err_code)
+Conn ConnectUnixSockStreamWithAbstractPath(const Str &path, int64_t timeout_ms, int *err_code)
 {
     struct sockaddr_un addr;
     socklen_t addr_len;

@@ -34,6 +34,20 @@ public:
             Sprintf("File [%s] Line [%d] Func [%s]", file_name_, line_num_, func_name_) :
             "INVALID CODE-POS";
     }
+
+    //获取原始信息，对nullptr转为空串
+    const char *FileName() const
+    {
+        return file_name_ ? file_name_ : "";
+    }
+    int LineNum() const
+    {
+        return line_num_;
+    }
+    const char *FuncName() const
+    {
+        return func_name_ ? func_name_ : "";
+    }
 };
 
 }

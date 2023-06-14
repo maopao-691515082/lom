@@ -1,5 +1,3 @@
-#coding=utf8
-
 import os
 
 os.chdir("src")
@@ -34,7 +32,7 @@ def write_line(line):
 write_line("""
 .PHONY: all
 
-include lom/Make.def
+include lom/defs.mk
 
 all:""")
 

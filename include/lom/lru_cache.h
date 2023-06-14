@@ -31,10 +31,10 @@ class LRUCache
 
     template <
         typename VT,
-        typename std::enable_if<std::is_same<
-            decltype(((const VT *)nullptr)->Size()),
+        typename std::enable_if_t<std::is_same_v<
+            std::invoke_result_t<decltype(&VT::Size), VT>,
             ssize_t
-        >::value>::type * = nullptr
+        >> * = nullptr
     >
     static ssize_t VSize(const VT &v)
     {
