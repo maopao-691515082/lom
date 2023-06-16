@@ -5,10 +5,20 @@ namespace lom
 
 static thread_local GoSlice<Str> err;
 
+static void PushErrBTImpl(CodePos _cp)
+{
+    if (err.Len() < 64 && _cp.Valid())
+    {
+        err = err.Append(_cp.Str());
+    }
+}
+
 void SetErr(Str s, CodePos _cp)
 {
+    int save_errno = errno;
     err = err.Nil().Append(s);
-    PushErrBT(_cp);
+    PushErrBTImpl(_cp);
+    errno = save_errno;
 }
 
 Str Err()
@@ -18,24 +28,32 @@ Str Err()
 
 void PushErrBT(CodePos _cp)
 {
-    if (err.Len() < 64 && _cp.Valid())
-    {
-        err = err.Append(_cp.Str());
-    }
+    int save_errno = errno;
+    PushErrBTImpl(_cp);
+    errno = save_errno;
 }
+
+struct EPSave
+{
+    GoSlice<Str> err_;
+    int errno_;
+};
 
 ErrProtector::ErrProtector()
 {
-    auto p = new GoSlice<Str>;
-    *p = err;
+    auto p = new EPSave;
+    p->err_ = err;
+    p->errno_ = errno;
     err = err.Nil();
-    p_ = (void *)p;
+    errno = 0;
+    p_ = reinterpret_cast<void *>(p);
 }
 
 ErrProtector::~ErrProtector()
 {
-    auto p = (GoSlice<Str> *)p_;
-    err = *p;
+    auto p = reinterpret_cast<EPSave *>(p_);
+    err = p->err_;
+    errno = p->errno_;
     delete p;
 }
 

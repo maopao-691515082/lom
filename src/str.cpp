@@ -16,7 +16,7 @@ bool StrSlice::CaseEq(StrSlice s) const
     }
     for (ssize_t i = 0; i < len; ++ i)
     {
-        if (toupper(p_[i]) != toupper(s.p_[i]))
+        if (toupper(static_cast<unsigned char>(p_[i])) != toupper(static_cast<unsigned char>(s.p_[i])))
         {
             return false;
         }
@@ -24,9 +24,16 @@ bool StrSlice::CaseEq(StrSlice s) const
     return true;
 }
 
-#define LOM_STR_SLICE_PARSE_NUM_FAIL(_pos, _msg) do {                                           \
-    SetErr(Sprintf("%s: error at pos[%zd] %s", __builtin_FUNCTION(), (ssize_t)(_pos), (_msg))); \
-    return false;                                                                               \
+#define LOM_STR_SLICE_PARSE_NUM_FAIL_WITH_ERRNO(_pos, _msg) do {    \
+    SetErr(Sprintf(                                                 \
+        "%s: error at pos[%zd] %s",                                 \
+        __builtin_FUNCTION(), static_cast<ssize_t>(_pos), (_msg))); \
+    return false;                                                   \
+} while (false)
+
+#define LOM_STR_SLICE_PARSE_NUM_FAIL(_pos, _msg) do {       \
+    errno = EINVAL;                                         \
+    LOM_STR_SLICE_PARSE_NUM_FAIL_WITH_ERRNO(_pos, _msg);    \
 } while (false)
 
 #define LOM_STR_SLICE_PARSE_NUM(_str_to_raw_v) do {                         \
@@ -55,7 +62,7 @@ bool StrSlice::CaseEq(StrSlice s) const
         LOM_STR_SLICE_PARSE_NUM_FAIL(end_ptr - p, "input contains '\\0'");  \
     }                                                                       \
     if (errno != 0) {                                                       \
-        LOM_STR_SLICE_PARSE_NUM_FAIL(0, "parse failed");                    \
+        LOM_STR_SLICE_PARSE_NUM_FAIL_WITH_ERRNO(0, "parse failed");         \
     }                                                                       \
     v = raw_v;                                                              \
     return true;                                                            \
@@ -63,27 +70,27 @@ bool StrSlice::CaseEq(StrSlice s) const
 
 bool StrSlice::ParseInt64(int64_t &v, int base) const
 {
-    LOM_STR_SLICE_PARSE_NUM(strtoll(p, (char **)&end_ptr, base));
+    LOM_STR_SLICE_PARSE_NUM(strtoll(p, const_cast<char **>(&end_ptr), base));
 }
 
 bool StrSlice::ParseUInt64(uint64_t &v, int base) const
 {
-    LOM_STR_SLICE_PARSE_NUM(strtoull(p, (char **)&end_ptr, base));
+    LOM_STR_SLICE_PARSE_NUM(strtoull(p, const_cast<char **>(&end_ptr), base));
 }
 
 bool StrSlice::ParseFloat(float &v) const
 {
-    LOM_STR_SLICE_PARSE_NUM(strtof(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(strtof(p, const_cast<char **>(&end_ptr)));
 }
 
 bool StrSlice::ParseDouble(double &v) const
 {
-    LOM_STR_SLICE_PARSE_NUM(strtod(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(strtod(p, const_cast<char **>(&end_ptr)));
 }
 
 bool StrSlice::ParseLongDouble(long double &v) const
 {
-    LOM_STR_SLICE_PARSE_NUM(strtold(p, (char **)&end_ptr));
+    LOM_STR_SLICE_PARSE_NUM(strtold(p, const_cast<char **>(&end_ptr)));
 }
 
 static const char *const kHexDigests = "0123456789ABCDEF";
@@ -331,7 +338,7 @@ Str StrSlice::Hex() const
     auto p = b.Data();
     for (ssize_t i = 0; i < len; ++ i)
     {
-        auto uc = (unsigned char)data[i];
+        auto uc = static_cast<unsigned char>(data[i]);
         p[i * 2] = kHexDigests[uc / 16];
         p[i * 2 + 1] = kHexDigests[uc % 16];
     }
@@ -344,6 +351,7 @@ bool StrSlice::Unhex(Str &s) const
     auto len = Len();
     if (len % 2 != 0)
     {
+        errno = EINVAL;
         SetErr("Unhex: odd length");
         return false;
     }
@@ -371,10 +379,11 @@ bool StrSlice::Unhex(Str &s) const
         int n1 = c_2_i(data[i]), n2 = c_2_i(data[i + 1]);
         if (n1 < 0 || n2 < 0)
         {
+            errno = EINVAL;
             SetErr(Sprintf("Unhex: invalid digit at pos [%zd]", n1 < 0 ? i : i + 1));
             return false;
         }
-        *(unsigned char *)&p[i / 2] = n1 * 16 + n2;
+        *reinterpret_cast<unsigned char *>(&p[i / 2]) = n1 * 16 + n2;
     }
 
     s = std::move(b);
@@ -382,38 +391,41 @@ bool StrSlice::Unhex(Str &s) const
 }
 
 template <typename T>
-Str StrSliceJoin(StrSlice s, Iterator<T> *iter)
+static Str StrSliceJoin(StrSlice s, Iterator<T> *iter)
 {
     //先算长度
     auto s_data = s.Data();
     auto s_len = s.Len();
-    ssize_t total_len = -s_len;
-    for (auto iter_copy = iter->Copy(); iter_copy->Valid(); iter_copy->Inc())
+    ssize_t total_len = 0;
     {
-        total_len += s_len;
-        total_len += iter_copy->Get().Len();
-    }
-    if (total_len <= 0)
-    {
-        //空列表或分隔和串全空
-        return "";
+        auto iter_copy = iter->Copy();
+        if (iter_copy)
+        {
+            //迭代器可复制，先计算总长度
+            total_len = -s_len;
+            for (; iter_copy->Valid(); iter_copy->Inc())
+            {
+                total_len += s_len;
+                total_len += iter_copy->Get().Len();
+            }
+            if (total_len <= 0)
+            {
+                //空列表或分隔和串全空
+                return "";
+            }
+        }
     }
 
-    Str::Buf b(total_len);
-    auto p = b.Data();
+    Str::Buf b(0, total_len);
     for (ssize_t i = 0; iter->Valid(); iter->Inc(), ++ i)
     {
         const T &t = iter->Get();
         if (i > 0)
         {
-            memcpy(p, s_data, s_len);
-            p += s_len;
+            b.Append(s_data, s_len);
         }
-        auto t_len = t.Len();
-        memcpy(p, t.Data(), t_len);
-        p += t_len;
+        b.Append(t.Data(), t.Len());
     }
-    Assert(p == b.Data() + b.Len());
     return Str(std::move(b));
 }
 
@@ -471,15 +483,16 @@ Str Str::Join(Iterator<Str> *iter) const
 
 Str Sprintf(const char *fmt, ...)
 {
-    static thread_local char buf[128];
     int need_len;
     {
+        static thread_local char buf[128];
+
         va_list ap;
         va_start(ap, fmt);
         need_len = vsnprintf(buf, sizeof(buf), fmt, ap);
         Assert(need_len >= 0);
         va_end(ap);
-        if (need_len < (int)sizeof(buf))
+        if (need_len < static_cast<int>(sizeof(buf)))
         {
             return Str(buf, need_len);
         }
@@ -489,7 +502,7 @@ Str Sprintf(const char *fmt, ...)
         Str::Buf b(need_len);
         va_list ap;
         va_start(ap, fmt);
-        Assert(vsnprintf(b.Data(), (size_t)need_len + 1, fmt, ap) == need_len);
+        Assert(vsnprintf(b.Data(), static_cast<size_t>(need_len) + 1, fmt, ap) == need_len);
         va_end(ap);
         return Str(std::move(b));
     }

@@ -21,7 +21,7 @@ namespace var_int
 
 Str Encode(int64_t n)
 {
-    auto un = (uint64_t)n;
+    auto un = static_cast<uint64_t>(n);
     if (n >= 0)
     {
         return EncodeUInt(un);
@@ -32,7 +32,7 @@ Str Encode(int64_t n)
     if (n >= -(1LL << 6))
     {
         buf[0] = un & 0x7F;
-        return Str((const char *)buf, 1);
+        return Str(reinterpret_cast<const char *>(buf), 1);
     }
 
     if (n >= -(1LL << 21))
@@ -40,7 +40,7 @@ Str Encode(int64_t n)
         buf[0] = (un >> 16) & 0x3F;
         buf[1] = un >> 8;
         buf[2] = un;
-        return Str((const char *)buf, 3);
+        return Str(reinterpret_cast<const char *>(buf), 3);
     }
 
     if (n >= -(1LL << 44))
@@ -51,12 +51,12 @@ Str Encode(int64_t n)
         buf[3] = un >> 16;
         buf[4] = un >> 8;
         buf[5] = un;
-        return Str((const char *)buf, 6);
+        return Str(reinterpret_cast<const char *>(buf), 6);
     }
 
     buf[0] = 0x0F;
-    *(uint64_t *)(buf + 1) = htobe64(un);
-    return Str((const char *)buf, 9);
+    *reinterpret_cast<uint64_t *>(buf + 1) = htobe64(un);
+    return Str(reinterpret_cast<const char *>(buf), 9);
 }
 
 Str EncodeUInt(uint64_t n)
@@ -66,14 +66,14 @@ Str EncodeUInt(uint64_t n)
     if (n < (1ULL << 6))
     {
         buf[0] = n | 0x80;
-        return Str((const char *)buf, 1);
+        return Str(reinterpret_cast<const char *>(buf), 1);
     }
 
     if (n < (1ULL << 13))
     {
         buf[0] = (n >> 8) | 0xC0;
         buf[1] = n;
-        return Str((const char *)buf, 2);
+        return Str(reinterpret_cast<const char *>(buf), 2);
     }
 
     if (n < (1ULL << 28))
@@ -82,7 +82,7 @@ Str EncodeUInt(uint64_t n)
         buf[1] = n >> 16;
         buf[2] = n >> 8;
         buf[3] = n;
-        return Str((const char *)buf, 4);
+        return Str(reinterpret_cast<const char *>(buf), 4);
     }
 
     if (n < (1ULL << 43))
@@ -93,12 +93,12 @@ Str EncodeUInt(uint64_t n)
         buf[3] = n >> 16;
         buf[4] = n >> 8;
         buf[5] = n;
-        return Str((const char *)buf, 6);
+        return Str(reinterpret_cast<const char *>(buf), 6);
     }
 
     buf[0] = 0xF8;
-    *(uint64_t *)(buf + 1) = htobe64(n);
-    return Str((const char *)buf, 9);
+    *reinterpret_cast<uint64_t *>(buf + 1) = htobe64(n);
+    return Str(reinterpret_cast<const char *>(buf), 9);
 }
 
 bool Decode(const char *&p, ssize_t &sz, int64_t &n)
@@ -108,7 +108,7 @@ bool Decode(const char *&p, ssize_t &sz, int64_t &n)
         return false;
     }
 
-    auto pu = (const uint8_t *)p;
+    auto pu = reinterpret_cast<const uint8_t *>(p);
 
     if (*pu & 0x80)
     {
@@ -120,7 +120,7 @@ bool Decode(const char *&p, ssize_t &sz, int64_t &n)
         {
             return false;
         }
-        n = (int64_t)un;
+        n = static_cast<int64_t>(un);
         if (n < 0)
         {
             return false;
@@ -134,7 +134,7 @@ bool Decode(const char *&p, ssize_t &sz, int64_t &n)
 
     if ((*pu & 0xC0) == 0x40)
     {
-        n = (int8_t)(*pu | 0xC0);
+        n = static_cast<int8_t>(*pu | 0xC0);
         ++ p;
         -- sz;
         return true;
@@ -146,10 +146,10 @@ bool Decode(const char *&p, ssize_t &sz, int64_t &n)
         {
             return false;
         }
-        auto un = (uint64_t)(int64_t)(int8_t)(*pu | 0xE0);
+        auto un = static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(*pu | 0xE0)));
         un = (un << 8) | pu[1];
         un = (un << 8) | pu[2];
-        n = (int64_t)un;
+        n = static_cast<int64_t>(un);
         if (n >= -(1LL << 6))
         {
             return false;
@@ -165,13 +165,13 @@ bool Decode(const char *&p, ssize_t &sz, int64_t &n)
         {
             return false;
         }
-        auto un = (uint64_t)(int64_t)(int8_t)(*pu | 0xF0);
+        auto un = static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(*pu | 0xF0)));
         un = (un << 8) | pu[1];
         un = (un << 8) | pu[2];
         un = (un << 8) | pu[3];
         un = (un << 8) | pu[4];
         un = (un << 8) | pu[5];
-        n = (int64_t)un;
+        n = static_cast<int64_t>(un);
         if (n >= -(1LL << 21))
         {
             return false;
@@ -187,7 +187,7 @@ bool Decode(const char *&p, ssize_t &sz, int64_t &n)
         {
             return false;
         }
-        n = (int64_t)be64toh(*(const uint64_t *)(pu + 1));
+        n = static_cast<int64_t>(be64toh(*reinterpret_cast<const uint64_t *>(pu + 1)));
         if (n >= -(1LL << 44))
         {
             return false;
@@ -207,7 +207,7 @@ bool DecodeUInt(const char *&p, ssize_t &sz, uint64_t &n)
         return false;
     }
 
-    auto pu = (const uint8_t *)p;
+    auto pu = reinterpret_cast<const uint8_t *>(p);
 
     if (!(*pu & 0x80))
     {
@@ -286,7 +286,7 @@ bool DecodeUInt(const char *&p, ssize_t &sz, uint64_t &n)
         {
             return false;
         }
-        n = be64toh(*(const uint64_t *)(pu + 1));
+        n = be64toh(*reinterpret_cast<const uint64_t *>(pu + 1));
         if (n < (1ULL << 43))
         {
             return false;

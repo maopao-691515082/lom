@@ -23,7 +23,7 @@ uint64_t RandGenerator::RandN(uint64_t n)
     这里采用分别取两个32-bit数再组合的方式缓解这个问题
     */
 
-#define LOM_RAND_UINT32_RAND() ((uint64_t)(this->Rand() * (double)((uint64_t)1 << 32)))
+#define LOM_RAND_UINT32_RAND() (static_cast<uint64_t>(this->Rand() * static_cast<double>(1ULL << 32)))
 
     auto r = LOM_RAND_UINT32_RAND();
     return (n < kUInt32Max ? r : ((r << 32) + LOM_RAND_UINT32_RAND())) % n;
@@ -47,7 +47,7 @@ static RandGenerator *TLSRandGenerator()
     static thread_local RandGenerator *rand_generator = nullptr;
     if (rand_generator == nullptr)
     {
-        rand_generator = new RandGenerator((uint64_t)NowUS() * (uint64_t)NowUS());
+        rand_generator = new RandGenerator(static_cast<uint64_t>(NowUS()) * static_cast<uint64_t>(NowUS()));
     }
     return rand_generator;
 }

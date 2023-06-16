@@ -35,7 +35,7 @@ class BufReaderImpl : public BufReader
             auto ret = do_read_(buf_, buf_sz_);
             if (ret < 0)
             {
-                return (int)ret;
+                return static_cast<int>(ret);
             }
             if (ret > 0)
             {
@@ -109,7 +109,7 @@ public:
         int ret = Fill();
         if (ret < 0)
         {
-            return (ssize_t)ret;
+            return static_cast<ssize_t>(ret);
         }
         if (len_ == 0)
         {
@@ -154,7 +154,7 @@ class BufWriterImpl : public BufWriter
         auto ret = do_write_(buf_ + start_, send_len);
         if (ret < 0)
         {
-            return (int)ret;
+            return static_cast<int>(ret);
         }
 
         Assert(ret > 0 && ret <= send_len);

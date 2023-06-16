@@ -5,15 +5,7 @@
 namespace lom
 {
 
-/*
-随机数生成器相关库，算法：Wichmann-Hill
-
-论文：
-Brian Wichmann, David Hill,
-Algorithm AS 183: An Efficient and Portable Pseudo-random Number Generator,
-Applied Statistics,
-Volume 31, Number 2, 1982, pages 188-190.
-*/
+//随机数生成器
 
 //RandGenerator类非线程安全
 class RandGenerator

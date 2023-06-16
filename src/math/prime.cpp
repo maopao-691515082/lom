@@ -16,7 +16,7 @@ bool IsPrime(uint64_t n)
     {
         return false;
     }
-    for (uint64_t i = 3; i < ((uint64_t)1 << 32) && i * i <= n; i += 2)
+    for (uint64_t i = 3; n / i >= i; i += 2)
     {
         if (n % i == 0)
         {

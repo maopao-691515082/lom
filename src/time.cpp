@@ -7,7 +7,7 @@ int64_t NowUS()
 {
     struct timeval now;
     gettimeofday(&now, nullptr);
-    return (int64_t)now.tv_sec * 1000000 + (int64_t)now.tv_usec;
+    return static_cast<int64_t>(now.tv_sec) * 1000000 + static_cast<int64_t>(now.tv_usec);
 }
 
 int64_t NowMS()
@@ -22,12 +22,12 @@ int64_t NowSec()
 
 double NowFloat()
 {
-    return (double)NowUS() / 1e6;
+    return static_cast<double>(NowUS()) / 1e6;
 }
 
 Str StrFTime(const char *fmt, int64_t ts_sec)
 {
-    time_t ts = ts_sec < 0 ? (time_t)NowSec() : (time_t)ts_sec;
+    time_t ts = static_cast<time_t>(ts_sec < 0 ? NowSec() : ts_sec);
 
     struct tm tm_r;
     localtime_r(&ts, &tm_r);
@@ -42,7 +42,7 @@ int64_t NowClockNS()
 {
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    return (int64_t)now.tv_sec * 1000000000 + (int64_t)now.tv_nsec;
+    return static_cast<int64_t>(now.tv_sec) * 1000000000 + static_cast<int64_t>(now.tv_nsec);
 }
 
 int64_t NowClockUS()
@@ -62,7 +62,7 @@ int64_t NowClockSec()
 
 double NowClockFloat()
 {
-    return (double)NowClockNS() / 1e9;
+    return static_cast<double>(NowClockNS()) / 1e9;
 }
 
 }
