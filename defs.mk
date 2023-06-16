@@ -7,3 +7,7 @@ LOM_CXX_FLAGS := -std=gnu++17 -ggdb3 -O2 \
 
 LOM_AR := ar
 LOM_AR_FLAGS := -crsP
+
+LOM_LD := g++
+LOM_LD_FLAGS := -rdynamic -pthread
+LIM_LD_STD_LIB_FLAGS := -lrt -lm

@@ -20,6 +20,7 @@
 #include <map>
 #include <atomic>
 #include <string>
+#include <memory>
 
 #include <sys/types.h>
 

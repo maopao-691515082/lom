@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 all:
-	@mkdir -p build/tmpobjs build/lom/lib
+	@mkdir -p build/tmpobjs build/lom/lib build/test
 	@rm -rf build/lom/include
 	@cp -r include build/lom/include
 	@rm -rf build/lom/defs.mk
