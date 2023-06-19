@@ -391,7 +391,7 @@ bool StrSlice::Unhex(Str &s) const
 }
 
 template <typename T>
-static Str StrSliceJoin(StrSlice s, Iterator<T> *iter)
+static Str StrSliceJoin(StrSlice s, const typename Iterator<T>::Ptr &iter)
 {
     //先算长度
     auto s_data = s.Data();
@@ -429,13 +429,13 @@ static Str StrSliceJoin(StrSlice s, Iterator<T> *iter)
     return Str(std::move(b));
 }
 
-Str StrSlice::Join(Iterator<StrSlice> *iter) const
+Str StrSlice::Join(const Iterator<StrSlice>::Ptr &iter) const
 {
-    return StrSliceJoin(*this, iter);
+    return StrSliceJoin<StrSlice>(*this, iter);
 }
-Str StrSlice::Join(Iterator<Str> *iter) const
+Str StrSlice::Join(const Iterator<Str>::Ptr &iter) const
 {
-    return StrSliceJoin(*this, iter);
+    return StrSliceJoin<Str>(*this, iter);
 }
 
 Str StrSlice::Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count) const
@@ -472,11 +472,11 @@ GoSlice<Str> Str::Split(StrSlice sep) const
     return Slice().Split(sep).Map<Str>();
 }
 
-Str Str::Join(Iterator<StrSlice> *iter) const
+Str Str::Join(const Iterator<StrSlice>::Ptr &iter) const
 {
     return Slice().Join(iter);
 }
-Str Str::Join(Iterator<Str> *iter) const
+Str Str::Join(const Iterator<Str>::Ptr &iter) const
 {
     return Slice().Join(iter);
 }

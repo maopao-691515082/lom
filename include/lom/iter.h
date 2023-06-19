@@ -17,7 +17,7 @@ namespace lom
 具体实现可以自由选择对rend的处理行为
 */
 template<typename T>
-class Iterator : public RCObjDyn
+class Iterator
 {
 protected:
 
@@ -29,7 +29,11 @@ protected:
 
 public:
 
-    typedef RCPtr<Iterator<T>> Ptr;
+    typedef std::shared_ptr<Iterator<T>> Ptr;
+
+    virtual ~Iterator()
+    {
+    }
 
     //创建一个当前迭代器的拷贝，可用于反复迭代一个目标，若具体实现不支持重复迭代，则可返回空指针
     virtual Ptr Copy() const = 0;
@@ -43,16 +47,14 @@ public:
         - 若迭代器不支持后退，传入负数的话行为未定义
         - 在边界处执行Inc或一次step过长越过了边界，行为由各实现定义，一般建议越过边界时保留在边界处，
           并在下次反向Inc时回到有效位置
-    方法返回当前对象指针便于链式调用
     */
-    Ptr Inc(ssize_t step = 1)
+    void Inc(ssize_t step = 1)
     {
         Assert(step >= -kSSizeSoftMax && step <= kSSizeSoftMax);
         if (step != 0)
         {
             IncImpl(step);
         }
-        return this;
     }
 
     //获取元素
@@ -77,7 +79,7 @@ protected:
 
 public:
 
-    typedef RCPtr<SizedIterator<T>> Ptr;
+    typedef std::shared_ptr<SizedIterator<T>> Ptr;
 
     ssize_t Size() const
     {

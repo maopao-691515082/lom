@@ -3,8 +3,4 @@
 namespace lom
 {
 
-RCObjDyn::~RCObjDyn()
-{
-}
-
 }

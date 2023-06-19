@@ -19,11 +19,15 @@ namespace io
 带缓冲的读封装，通过传入一个下层读函数来构建
 可指定缓冲大小，但会被调整到一个内部范围，指定<=0表示使用默认值
 */
-class BufReader : public RCObjDyn
+class BufReader
 {
 public:
 
-    typedef RCPtr<BufReader> Ptr;
+    typedef std::shared_ptr<BufReader> Ptr;
+
+    virtual ~BufReader()
+    {
+    }
 
     /*
     下层的读函数类型
@@ -65,11 +69,15 @@ public:
 带缓冲的写封装，通过传入一个下层写函数来构建
 可指定缓冲大小，但会被调整到一个内部范围，指定<=0表示使用默认值
 */
-class BufWriter :  public RCObjDyn
+class BufWriter
 {
 public:
 
-    typedef RCPtr<BufWriter> Ptr;
+    typedef std::shared_ptr<BufWriter> Ptr;
+
+    virtual ~BufWriter()
+    {
+    }
 
     /*
     下层的写函数类型

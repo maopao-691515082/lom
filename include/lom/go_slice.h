@@ -27,9 +27,9 @@ namespace lom
 template <typename T>
 class GoSlice
 {
-    struct Array : public RCObj
+    struct Array
     {
-        typedef RCPtr<Array> Ptr;
+        typedef std::shared_ptr<Array> Ptr;
         typedef typename std::vector<T>::iterator VecIter;
 
         std::vector<T> a_;
@@ -84,7 +84,7 @@ class GoSlice
     ssize_t start_ = 0;
     ssize_t len_ = 0;
 
-    GoSlice(Array *a, ssize_t start, ssize_t len) : a_(a), start_(start), len_(len)
+    GoSlice(const typename Array::Ptr &a, ssize_t start, ssize_t len) : a_(a), start_(start), len_(len)
     {
     }
 
@@ -114,10 +114,11 @@ class GoSlice
         }
         if (!a_)
         {
-            return GoSlice<T>(new Array{static_cast<R>(t)}, 0, 1);
+            return GoSlice<T>(typename Array::Ptr(new Array{static_cast<R>(t)}), 0, 1);
         }
         auto b = a_->a_.begin() + start_, e = b + len;
-        return GoSlice<T>(new Array(len + len / 2 + 1, b, e, static_cast<R>(t)), 0, len + 1);
+        return GoSlice<T>(
+            typename Array::Ptr(new Array(len + len / 2 + 1, b, e, static_cast<R>(t))), 0, len + 1);
     }
 
     template <typename InputIter>
@@ -131,24 +132,27 @@ class GoSlice
         }
         if (!a_)
         {
-            return GoSlice<T>(new Array(new_cap, in_begin, in_end), 0, in_len);
+            return GoSlice<T>(typename Array::Ptr(new Array(new_cap, in_begin, in_end)), 0, in_len);
         }
         auto b = a_->a_.begin() + start_, e = b + curr_len;
-        return GoSlice<T>(new Array(new_cap, b, e, in_begin, in_end), 0, curr_len + in_len);
+        return GoSlice<T>(
+            typename Array::Ptr(new Array(new_cap, b, e, in_begin, in_end)), 0, curr_len + in_len);
     }
 
     GoSlice<T> NewArrayAndAppend(
-        ssize_t curr_len, ssize_t curr_cap, ssize_t in_len, ::lom::Iterator<T> *iter) const
+        ssize_t curr_len, ssize_t curr_cap, ssize_t in_len,
+        const typename ::lom::Iterator<T>::Ptr &iter) const
     {
         auto new_cap = curr_cap;
         while (new_cap < curr_len + in_len)
         {
             new_cap += new_cap / 2 + 1;
         }
-        Array *a =
+        auto a = typename Array::Ptr(
             a_ ?
             new Array(new_cap, a_->a_.begin() + start_, a_->a_.begin() + (start_ + curr_len)) :
-            new Array(new_cap);
+            new Array(new_cap)
+        );
         ssize_t idx = curr_len;
         for (; iter->Valid(); iter->Inc())
         {
@@ -183,9 +187,9 @@ public:
     GoSlice(std::initializer_list<T> l) : a_(new Array(l)), start_(0), len_(static_cast<ssize_t>(l.size()))
     {
     }
-    GoSlice(::lom::Iterator<T> *iter)
+    GoSlice(const typename ::lom::Iterator<T>::Ptr &iter)
     {
-        a_ = new Array();
+        a_ = typename Array::Ptr(new Array());
         for (; iter->Valid(); iter->Inc())
         {
             a_->a_.emplace_back(iter->Get());
@@ -317,11 +321,11 @@ public:
 
     public:
 
-        typedef RCPtr<Iterator> Ptr;
+        typedef std::shared_ptr<Iterator> Ptr;
 
         virtual typename ::lom::Iterator<T>::Ptr Copy() const override
         {
-            return new Iterator(gs_, idx_);
+            return typename ::lom::Iterator<T>::Ptr(new Iterator(gs_, idx_));
         }
 
         virtual bool Valid() const override
@@ -343,14 +347,14 @@ public:
         }
     };
 
-    GoSlice<T> AppendIter(SizedIterator<T> *iter) const
+    GoSlice<T> AppendIter(const typename ::lom::SizedIterator<T>::Ptr &iter) const
     {
         if (!iter->Valid())
         {
             return *this;
         }
 
-        auto gs_iter = dynamic_cast<Iterator *>(iter);
+        auto gs_iter = dynamic_cast<Iterator *>(iter.get());
         if (gs_iter != nullptr)
         {
             //是同类型的GoSlice对象，走特化流程
@@ -372,9 +376,9 @@ public:
         return NewArrayAndAppend(len, cap, l_len, iter);
     }
 
-    RCPtr<Iterator> NewIter() const
+    typename ::lom::Iterator<T>::Ptr NewIter() const
     {
-        return new Iterator(*this, 0);
+        return typename ::lom::Iterator<T>::Ptr(new Iterator(*this, 0));
     }
 
     //遍历slice所有元素，对每个元素执行传入的函数，并将结果组成一个新的slice

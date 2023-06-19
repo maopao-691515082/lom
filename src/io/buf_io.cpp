@@ -135,7 +135,7 @@ public:
 
 BufReader::Ptr BufReader::New(BufReader::DoReadFunc do_read, ssize_t buf_sz)
 {
-    return new BufReaderImpl(do_read, buf_sz);
+    return BufReader::Ptr(new BufReaderImpl(do_read, buf_sz));
 }
 
 class BufWriterImpl : public BufWriter
@@ -241,7 +241,7 @@ public:
 
 BufWriter::Ptr BufWriter::New(BufWriter::DoWriteFunc do_write, ssize_t buf_sz)
 {
-    return new BufWriterImpl(do_write, buf_sz);
+    return BufWriter::Ptr(new BufWriterImpl(do_write, buf_sz));
 }
 
 }

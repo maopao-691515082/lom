@@ -1,8 +1,8 @@
 #include "../../include/lom.h"
 
-struct Record : public lom::RCObj
+struct Record
 {
-    typedef lom::RCPtr<Record> Ptr;
+    typedef std::shared_ptr<Record> Ptr;
 
     Ptr ptr_comp;
     int discr = 0, enum_comp = 0, int_comp = 0;

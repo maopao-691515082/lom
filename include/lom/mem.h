@@ -194,9 +194,17 @@ public:
 
 class RCObjDyn : public RCObj
 {
+protected:
+
+    RCObjDyn()
+    {
+    }
+
 public:
 
-    virtual ~RCObjDyn() = 0;
+    virtual ~RCObjDyn()
+    {
+    }
 
     template <typename T>
     RCPtr<T> DynCast()
