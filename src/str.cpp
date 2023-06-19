@@ -190,7 +190,7 @@ GoSlice<StrSlice> StrSlice::Split(StrSlice sep) const
     return gs;
 }
 
-static const ssize_t kShortStrLenMax = sizeof(Str) - 2; //1-byte len + 1-byte nul end
+static const ssize_t kShortStrLenMax = static_cast<ssize_t>(sizeof(Str)) - 2;   //1-byte len + 1-byte nul end
 
 Str::Str(StrSlice s)
 {
@@ -212,7 +212,9 @@ Str::Str(StrSlice s)
     char *p = new char [len + 1];
     memcpy(p, data, len);
     p[len] = '\0';
-    lsp_ = new LongStr(p);
+    new (&lsp_) std::shared_ptr<LongStr>(reinterpret_cast<LongStr *>(p), [] (auto p_to_del) {
+        delete[] reinterpret_cast<char *>(p_to_del);
+    });
 }
 
 void Str::Buf::FitLen(ssize_t len)
@@ -253,7 +255,9 @@ void Str::MoveFrom(Buf &&buf)
     ss_len_ = -1;
     ls_len_high_ = buf.len_ >> 32;
     ls_len_low_ = buf.len_ & kUInt32Max;
-    lsp_ = new LongStr(buf.p_);
+    new (&lsp_) std::shared_ptr<LongStr>(reinterpret_cast<LongStr *>(buf.p_), [] (auto p_to_del) {
+        free(reinterpret_cast<char *>(p_to_del));
+    });
 }
 
 Str Str::FromInt64(int64_t n)

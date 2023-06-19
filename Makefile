@@ -1,6 +1,6 @@
 .PHONY: all clean
 
-all:
+all: clean
 	@mkdir -p build/tmpobjs build/lom/lib build/test
 	@rm -rf build/lom/include
 	@cp -r include build/lom/include

@@ -282,56 +282,52 @@ Str的大部分方法算法都是将自身转为StrSlice后，再调用其对应
 */
 class Str final
 {
+    //以这个结构体的指针指向申请的长串内存，然后用shared_ptr管理
     struct LongStr
     {
-        std::atomic<int64_t> rc_;
-        const char *p_;
-
-        LongStr(const char *p) : rc_(1), p_(p)
-        {
-        }
-
-        ~LongStr()
-        {
-            delete[] p_;
-        }
+        char s_[1];
     };
 
     /*
     Str结构和算法说明：
-        - 由于limit.h已经限定了指针是8字节，则通过字节对齐我们如下布局来安排Str对象，共16字节
+        - 由于limit.h已经限定了指针是8字节，在字节对齐的情况下，
+          STL的shared_ptr或其他智能指针的实现大概率是16字节，或其他8的倍数，
+          所以这里就通过额外8字节的头部+shared_ptr大小来安排Str对象，若lsp_前出现padding也没关系
         - ss=short-string，ss_len_字段表示短串长度，若为负数则表示当前Str是一个长串
             - 短串存储是将Str结构中ss_len_之后的空间，即ss_start_开始的空间，看做一段内存直接存储字符串
-            - 长串存储是用ls_len_high_和ls_len_low_分别存储长度的高16位和低32位，然后由lsp_存储具体对象，
-              长串在Str对象进行创建、赋值、析构时会调整LongStr对象中的引用计数
-        - 由于含有末尾\0，再扣去ss_len_，则支持的短串长度为[0, 14]
+            - 长串存储是用ls_len_high_和ls_len_low_分别存储长度的高16位和低32位，然后由lsp_管理具体长串
+        - 由于含有末尾\0，再扣去ss_len_，则支持的短串长度为[0, sizeof(Str) - 2]
 
-    根据C++11开始的规定，Str的这种定义方式是一个标准布局，所以我们可以假设下述字段如所期望的布局方式存储，
-    并在下面的IsLongStr方法中做个静态断言检查以确保这个设计能正常运作，
-    当然更通用的做法是定义char [16]然后按字节偏移来手动存储长串的各种信息，但那样一来代码比较麻烦，
-    我们也不考虑对更老的标准的支持了
+    我们可以假设下述字段如所期望的布局方式存储，
+    并在下面的IsLongStr方法中做个静态断言检查以确保这个设计能正常运作
     */
     int8_t ss_len_;
     char ss_start_;
     uint16_t ls_len_high_;
     uint32_t ls_len_low_;
-    LongStr *lsp_;
+    union
+    {
+        std::shared_ptr<LongStr> lsp_;
+        char ud_[sizeof(lsp_)]; //plain union data
+    };
 
     bool IsLongStr() const
     {
         //对上述假设做一个静态断言检查
         static_assert(
-            sizeof(Str) == 16 && offsetof(Str, ss_len_) == 0 && offsetof(Str, ss_start_) == 1,
+            sizeof(LongStr) == 1 && sizeof(lsp_) % 8 == 0 &&
+            offsetof(Str, ss_len_) == 0 && offsetof(Str, ss_start_) == 1 &&
+            offsetof(Str, lsp_) == offsetof(Str, ud_) && offsetof(Str, lsp_) + sizeof(lsp_) == sizeof(Str),
             "unsupportted string fields arrangement");
 
         return ss_len_ < 0;
     }
 
-    void Destruct() const
+    void Destruct()
     {
-        if (IsLongStr() && lsp_->rc_.fetch_add(-1) == 1)
+        if (IsLongStr())
         {
-            delete lsp_;
+            lsp_.~shared_ptr();
         }
     }
 
@@ -339,14 +335,34 @@ class Str final
     {
         if (s.IsLongStr())
         {
-            s.lsp_->rc_.fetch_add(1);
+            ss_len_ = s.ss_len_;
+            ss_start_ = s.ss_start_;
+            ls_len_high_ = s.ls_len_high_;
+            ls_len_low_ = s.ls_len_low_;
+            new (&lsp_) std::shared_ptr<LongStr>(s.lsp_);
         }
-        memcpy(this, &s, sizeof(Str));
+        else
+        {
+            memcpy(&ss_len_, &s.ss_len_, offsetof(Str, ud_));
+            memcpy(ud_, s.ud_, sizeof(ud_));
+        }
     }
 
     void MoveFrom(Str &&s)
     {
-        memcpy(this, &s, sizeof(Str));
+        if (s.IsLongStr())
+        {
+            ss_len_ = s.ss_len_;
+            ss_start_ = s.ss_start_;
+            ls_len_high_ = s.ls_len_high_;
+            ls_len_low_ = s.ls_len_low_;
+            new (&lsp_) std::shared_ptr<LongStr>(std::move(s.lsp_));
+        }
+        else
+        {
+            memcpy(&ss_len_, &s.ss_len_, offsetof(Str, ud_));
+            memcpy(ud_, s.ud_, sizeof(ud_));
+        }
         s.ss_len_ = 0;
         s.ss_start_ = '\0';
     }
@@ -424,7 +440,7 @@ public:
 
     const char *Data() const
     {
-        return IsLongStr() ? lsp_->p_ : &ss_start_;
+        return IsLongStr() ? lsp_->s_ : &ss_start_;
     }
     ssize_t Len() const
     {

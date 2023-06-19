@@ -13,7 +13,7 @@ static void PushErrBTImpl(CodePos _cp)
     }
 }
 
-void SetErr(Str s, CodePos _cp)
+void SetErr(const Str &s, CodePos _cp)
 {
     int save_errno = errno;
     err = err.Nil().Append(s);
