@@ -254,7 +254,7 @@ public:
     Hex将串转为16进制的形式，每个字符用两位HH表示，例如"1+2"转为"312B32"
     Unhex执行反向操作，返回是否成功，若输入的不是合法的形式，则返回失败
     */
-    Str Hex() const;
+    Str Hex(bool upper_case = true) const;
     bool Unhex(Str &s) const;
 
     //以当前串为分隔符，链接输入的GoSlice中的所有串，返回结果
@@ -680,9 +680,9 @@ public:
         return Slice().Lower();
     }
 
-    Str Hex() const
+    Str Hex(bool upper_case = true) const
     {
-        return Slice().Hex();
+        return Slice().Hex(upper_case);
     }
     bool Unhex(Str &s) const
     {

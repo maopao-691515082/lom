@@ -94,6 +94,7 @@ bool StrSlice::ParseLongDouble(long double &v) const
 }
 
 static const char *const kHexDigests = "0123456789ABCDEF";
+static const char *const kHexDigestsLower = "0123456789abcdef";
 
 Str StrSlice::Repr() const
 {
@@ -334,17 +335,18 @@ Str StrSlice::Lower() const
     LOM_STR_SLICE_UOLER(tolower);
 }
 
-Str StrSlice::Hex() const
+Str StrSlice::Hex(bool upper_case) const
 {
     auto data = Data();
     auto len = Len();
     Str::Buf b(len * 2);
     auto p = b.Data();
+    auto digests = upper_case ? kHexDigests : kHexDigestsLower;
     for (ssize_t i = 0; i < len; ++ i)
     {
         auto uc = static_cast<unsigned char>(data[i]);
-        p[i * 2] = kHexDigests[uc / 16];
-        p[i * 2 + 1] = kHexDigests[uc % 16];
+        p[i * 2] = digests[uc / 16];
+        p[i * 2 + 1] = digests[uc % 16];
     }
     return Str(std::move(b));
 }
