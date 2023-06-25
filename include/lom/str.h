@@ -127,8 +127,12 @@ public:
     //正向或反向查找字节，返回索引，不存在返回-1
     ssize_t IndexByte(unsigned char b) const
     {
-        auto p = (const char *)memchr(Data(), b, Len());
+        auto p = reinterpret_cast<const char *>(memchr(Data(), b, Len()));
         return p == nullptr ? -1 : p - Data();
+    }
+    ssize_t IndexChar(char c) const
+    {
+        return IndexByte(static_cast<unsigned char>(c));
     }
     ssize_t RIndexByte(unsigned char b) const
     {
@@ -142,16 +146,24 @@ public:
         }
         return -1;
     }
+    ssize_t RIndexChar(char c) const
+    {
+        return RIndexByte(static_cast<unsigned char>(c));
+    }
     //判断是否包含字节的快捷方式
     bool ContainsByte(unsigned char b) const
     {
         return IndexByte(b) >= 0;
     }
+    bool ContainsChar(char c) const
+    {
+        return IndexChar(c) >= 0;
+    }
 
     //正向或反向查找子串，返回索引，不存在返回-1
     ssize_t Index(StrSlice s) const
     {
-        auto p = (const char *)memmem(Data(), Len(), s.Data(), s.Len());
+        auto p = reinterpret_cast<const char *>(memmem(Data(), Len(), s.Data(), s.Len()));
         return p == nullptr ? -1 : p - Data();
     }
     ssize_t RIndex(StrSlice s) const
@@ -195,7 +207,7 @@ public:
     StrSlice LTrim(StrSlice chs = kSpaceBytes) const
     {
         ssize_t this_len = Len(), i = 0;
-        while (i < this_len && chs.ContainsByte(Data()[i]))
+        while (i < this_len && chs.ContainsChar(Data()[i]))
         {
             ++ i;
         }
@@ -204,7 +216,7 @@ public:
     StrSlice RTrim(StrSlice chs = kSpaceBytes) const
     {
         auto this_len = Len(), i = this_len - 1;
-        while (i >= 0 && chs.ContainsByte(Data()[i]))
+        while (i >= 0 && chs.ContainsChar(Data()[i]))
         {
             -- i;
         }
@@ -483,13 +495,25 @@ public:
     {
         return Slice().IndexByte(b);
     }
+    ssize_t IndexChar(char c) const
+    {
+        return Slice().IndexChar(c);
+    }
     ssize_t RIndexByte(unsigned char b) const
     {
         return Slice().RIndexByte(b);
     }
+    ssize_t RIndexChar(char c) const
+    {
+        return Slice().RIndexChar(c);
+    }
     bool ContainsByte(unsigned char b) const
     {
         return Slice().ContainsByte(b);
+    }
+    bool ContainsChar(char c) const
+    {
+        return Slice().ContainsChar(c);
     }
 
     ssize_t Index(StrSlice s) const
@@ -574,7 +598,7 @@ public:
         void Construct(ssize_t len, ssize_t cap)
         {
             Assert(0 <= len && len <= cap && cap <= kStrLenMax);
-            p_ = (char *)malloc(cap + 1);
+            p_ = reinterpret_cast<char *>(malloc(cap + 1));
             Assert(p_ != nullptr);
             p_[len] = '\0';
             len_ = len;

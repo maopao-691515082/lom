@@ -128,13 +128,13 @@ Str StrSlice::Repr() const
 
             default:
             {
-                if (c >= 0x20 && c <= 0x7E)
+                auto uc = static_cast<unsigned char>(c);
+                if (uc >= 0x20 && uc <= 0x7E)
                 {
                     b.Append(&c, 1);
                 }
                 else
                 {
-                    auto uc = (unsigned char)c;
                     b.Append("\\x");
                     b.Append(&kHexDigests[uc / 16], 1);
                     b.Append(&kHexDigests[uc % 16], 1);
@@ -210,7 +210,7 @@ Str::Str(StrSlice s)
     ss_len_ = -1;
     ls_len_high_ = len >> 32;
     ls_len_low_ = len & kUInt32Max;
-    char *p = new char [len + 1];
+    char *p = new char[len + 1];
     memcpy(p, data, len);
     p[len] = '\0';
     new (&lsp_) std::shared_ptr<LongStr>(reinterpret_cast<LongStr *>(p), [] (auto p_to_del) {
@@ -229,7 +229,7 @@ void Str::Buf::FitLen(ssize_t len)
             {
                 cap_ += cap_ / 2 + 1;
             }
-            p_ = (char *)realloc(p_, cap_ + 1);
+            p_ = reinterpret_cast<char *>(realloc(p_, cap_ + 1));
             Assert(p_ != nullptr);
         }
         p_[len] = '\0';
@@ -314,16 +314,16 @@ Str Str::FromUInt64(uint64_t n)
     return p;
 }
 
-#define LOM_STR_SLICE_UOLER(_conv_ch) do {                      \
-    auto data = Data();                                         \
-    auto len = Len();                                           \
-    Str::Buf b(len);                                            \
-    auto p = b.Data();                                          \
-    for (ssize_t i = 0; i < len; ++ i)                          \
-    {                                                           \
-        p[i] = _conv_ch(static_cast<unsigned char>(data[i]));   \
-    }                                                           \
-    return Str(std::move(b));                                   \
+#define LOM_STR_SLICE_UOLER(_conv_ch) do {                                          \
+    auto data = Data();                                                             \
+    auto len = Len();                                                               \
+    Str::Buf b(len);                                                                \
+    auto p = b.Data();                                                              \
+    for (ssize_t i = 0; i < len; ++ i)                                              \
+    {                                                                               \
+        p[i] = static_cast<char>(_conv_ch(static_cast<unsigned char>(data[i])));    \
+    }                                                                               \
+    return Str(std::move(b));                                                       \
 } while (false)
 
 Str StrSlice::Upper() const
