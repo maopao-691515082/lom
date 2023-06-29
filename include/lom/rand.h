@@ -10,23 +10,32 @@ namespace lom
 //RandGenerator类非线程安全
 class RandGenerator
 {
-    uint64_t seed_x_, seed_y_, seed_z_;
+    std::mt19937_64 r_;
 
 public:
 
-    RandGenerator(uint64_t seed)
+    RandGenerator(uint64_t seed) : r_(seed)
     {
-        SRand(seed);
     }
 
     //返回[0, 1)的一个随机数
-    double Rand();
+    double Rand()
+    {
+        static const uint64_t kMod = 1ULL << 52;    //IEEE double精度
+        return static_cast<double>(RandN(kMod)) / static_cast<double>(kMod);
+    }
 
     //返回[0, n)的一个随机整数，若n为0则返回0
-    uint64_t RandN(uint64_t n);
+    uint64_t RandN(uint64_t n)
+    {
+        return n == 0 ? 0 : r_() % n;
+    }
 
     //设置随机种子
-    void SRand(uint64_t seed);
+    void SRand(uint64_t seed)
+    {
+        r_.seed(seed);
+    }
 };
 
 //使用默认的thread_local的RandGenerator的快捷方式

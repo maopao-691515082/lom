@@ -21,6 +21,7 @@
 #include <atomic>
 #include <string>
 #include <memory>
+#include <random>
 
 #include <sys/types.h>
 
