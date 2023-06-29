@@ -3,7 +3,7 @@
 namespace lom
 {
 
-static RandGenerator *TLSRandGenerator()
+RandGenerator *TLSRandGenerator()
 {
     static thread_local RandGenerator *rand_generator = nullptr;
     if (rand_generator == nullptr)
@@ -15,7 +15,7 @@ static RandGenerator *TLSRandGenerator()
 
 double Rand()
 {
-    return TLSRandGenerator()->Rand();
+    return TLSRandGenerator()->Rand01<double>();
 }
 
 uint64_t RandN(uint64_t n)

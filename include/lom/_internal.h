@@ -22,6 +22,7 @@
 #include <string>
 #include <memory>
 #include <random>
+#include <limits>
 
 #include <sys/types.h>
 
