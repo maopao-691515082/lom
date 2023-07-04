@@ -24,7 +24,7 @@ public:
     {
         static const int kMantissaDigits = std::numeric_limits<T>::digits;
         static_assert(kMantissaDigits > 8, "error: invalid mantissa digits");
-        static const uint64_t kMod = static_cast<uint64_t>(1) << std::min(63, kMantissaDigits - 1);
+        static const uint64_t kMod = static_cast<uint64_t>(1) << std::min(63, kMantissaDigits);
         return static_cast<T>(RandN(kMod)) / static_cast<T>(kMod);
     }
 
