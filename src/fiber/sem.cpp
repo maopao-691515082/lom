@@ -27,8 +27,8 @@ int Sem::Acquire(uint64_t acquire_value, int64_t timeout_ms) const
     int64_t expire_at = timeout_ms < 0 ? -1 : NowMS() + timeout_ms;
 
     /*
-    循环acquire直到需要的acquire_value都申请完成，或到sem被销毁、超时失败等情况
-    需要注意的是如果超时，则需返还done_value
+    循环`acquire`直到需要的`acquire_value`都申请完成，或到sem被销毁、超时失败等情况
+    需要注意的是如果超时，则需返还`done_value`
     */
 
     uint64_t done_value = 0;

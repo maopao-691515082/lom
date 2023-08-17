@@ -15,12 +15,12 @@ namespace lom
 类似Go语言的slice的容器，扩展支持了负索引，按索引访问时，调用者自行保证索引的合法性
 容器元素的类型T必须支持默认构造、复制构造、赋值等操作
 注意这个结构的接口设计是介于原地修改和immut之间的，可分几类：
-    - 原地修改当前引用的数据（大部分写操作），这类操作会返回*this便于链式调用
+    - 原地修改当前引用的数据（大部分写操作），这类操作会返回`*this`便于链式调用
     - 生成一个新的下层数组并返回对应的GoSlice对象（如Map类操作），这类操作不会修改当前引用的数据
     - 二者都有可能（如Append类操作）
       Append的判定标准是当前cap是否足够容纳输入的数据
         - 如果能，就原地修改并返回引用Append后的范围的GoSlice对象，和原对象引用同一个下层数组（但是范围不同）
-          （当然如果Append一个空表就什么都不做，等同返回*this）
+          （当然如果Append一个空表就什么都不做，等同返回`*this`）
         - 如果不能，就生成新数组和对应GoSlice对象并返回
 */
 
@@ -165,7 +165,7 @@ class GoSlice
 
 public:
 
-    //构建空slice，Nil为从当前变量构建的快捷方法
+    //构建空slice，`Nil`为从当前变量构建的快捷方法
     GoSlice()
     {
     }
@@ -174,7 +174,7 @@ public:
         return GoSlice<T>();
     }
 
-    //通过指定len和cap构建，调用者自行保证len和cap的合法性
+    //通过指定`len`和`cap`构建，调用者自行保证`len`和`cap`的合法性
     GoSlice(ssize_t len, ssize_t cap) : a_(new Array(cap)), start_(0), len_(len)
     {
         Assert(0 <= len && len <= cap);
@@ -231,7 +231,7 @@ public:
         return GoSlice<T>(a_, start_ + start, this_len - start);
     }
 
-    //若为GoSlice<char>，则可通过这个方法获取对应数据的StrSlice
+    //若为`GoSlice<char>`，则可通过这个方法获取对应数据的`StrSlice`
     ::lom::StrSlice StrSlice() const
     {
         return a_ ? ::lom::StrSlice(&a_->a_[start_], Len()) : ::lom::StrSlice();
@@ -335,9 +335,9 @@ public:
 
         /*
         返回从当前迭代器位置到创建此迭代器的GoSlice对象的右边界的GoSlice对象，且引用的下层数组一致
-        换句话说，就是若从某GoSlice对象gs创建此迭代器iter，
-        并执行了相当于执行了iter.Inc(step)的流程（step >= 0），
-        此时iter.RawGoSlice()将返回相当于gs.Slice(step)
+        换句话说，就是若从某GoSlice对象`gs`创建此迭代器`iter`，
+        并执行了相当于执行了`iter.Inc(step)`的流程（step >= 0），
+        此时`iter.RawGoSlice()`将返回相当于`gs.Slice(step)`
         若此时指向左边界rend，则返回新的空GoSlice对象，若指向右边界，
         则返回右边界起始且长度为0的GoSlice对象，即右侧的Cap部分依然可访问（如果有的话）
         */

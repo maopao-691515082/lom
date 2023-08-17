@@ -10,9 +10,9 @@ namespace lom
 
 /*
 简易lru-cache
-K需要实现operator<比较方法并保证全序性（因为用的STL的map）
-V可以实现Size方法来决定每个元素占用的实际大小，方法签名需要是`ssize_t Size() const`
-调用者保证返回的合法性（>0且累加不会溢出ssize_t），若V没有实现Size()方法，则每个V的大小默认为1，
+K需要实现`operator<`比较方法并保证全序性（因为用的STL的`map`）
+V可以实现`Size`方法来决定每个元素占用的实际大小，方法签名需要是`ssize_t Size() const`
+调用者保证返回的合法性（>0且累加不会溢出`ssize_t`），若V没有实现`Size()`方法，则每个V的大小默认为1，
 LRUCache的大小计算和淘汰按所有元素的大小的和计算
 */
 template <typename K, typename V>

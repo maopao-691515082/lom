@@ -23,8 +23,8 @@ Str Encode(int64_t n);
 Str EncodeUInt(uint64_t n);
 
 /*
-Decode函数在成功时会调整p和sz，消费掉本次解码的长度
-失败时，p和sz不作调整，n的值未定义
+`Decode`函数在成功时会调整`p`和`sz`，消费掉本次解码的长度
+失败时，`p`和`sz`不作调整，`n`的值未定义
 */
 bool Decode(const char *&p, ssize_t &sz, int64_t &n);
 bool DecodeUInt(const char *&p, ssize_t &sz, uint64_t &n);

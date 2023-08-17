@@ -267,7 +267,7 @@ Conn ConnectTCP(const char *ip, uint16_t port, int64_t timeout_ms, int *err_code
     if (inet_aton(ip, &addr.sin_addr) == 0)
     {
         /*
-        inet_aton不是sys call，但这里将其模拟为一个sys call的返回行为
+        `inet_aton`不是sys call，但这里将其模拟为一个sys call的返回行为
         参考`man inet_aton`:
             inet_aton() returns 1 if the supplied string was successfully interpreted,
             or 0 if the string is invalid (errno is not set on error).

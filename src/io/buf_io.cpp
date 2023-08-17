@@ -162,7 +162,7 @@ class BufWriterImpl : public BufWriter
         len_ -= ret;
         if (start_ == buf_sz_ || len_ == 0)
         {
-            //回绕的情况下写完了半段数据，或者没有回绕时所有数据写完，复位start
+            //回绕的情况下写完了半段数据，或者没有回绕时所有数据写完，复位`start_`
             start_ = 0;
         }
 

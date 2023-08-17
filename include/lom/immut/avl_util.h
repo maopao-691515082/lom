@@ -17,22 +17,26 @@ namespace immut
 
 节点规范：
     需要包含以下类型：
-        Ptr：表示节点对应的智能指针，且能从Node *直接转换
+        `Ptr`：表示节点对应的智能指针，且能从`Node *`直接转换
     需要包含以下属性：
+        ```
         uint8_t h_; //子树高度
         Ptr l_, r_; //左右子树
+        ```
     需要包含以下方法：
+        ```
         Ptr Copy() const;                           //返回当前节点的一个拷贝
         void AssignData(const Node *node);          //将node的数据部分赋值给当前节点，即不改变管理属性
         void SetSize(ssize_t sz);                   //调整平衡时设置节点高度
         static ssize_t Size(const Node *node);      //返回输入子树大小（总元素数量）
         static ssize_t ElemCount(const Node *node); //返回输入节点的元素数量
-    以上所有元素都应被AVLUtil可访问，一般做法是用friend赋予权限
-    static方法可能以node=nullptr调用，普通方法调用则保证this不为nullptr（C++规定this为nullptr是UB）
-    Size和ElemCount等方法的返回合法性由使用者保证（如必须>=0、nullptr节点需要返回0等）
+        ```
+    以上所有元素都应被`AVLUtil`可访问，一般做法是用`friend`赋予权限
+    static方法可能以`node=nullptr`调用，普通方法调用则保证`this`不为nullptr（C++规定`this`为nullptr是UB）
+    `Size`和`ElemCount`等方法的返回合法性由使用者保证（如必须>=0、nullptr节点需要返回0等）
     建议：
         节点数据最好实现为可直接赋值拷贝的类型，如值类型、智能指针等，这样拷贝构造可用默认实现
-        delete掉operator=的实现
+        delete掉`operator=`的实现
 */
 
 template <typename Node>
@@ -54,9 +58,9 @@ class AVLUtil
 public:
 
     /*
-    将curr_node为根的子树调整平衡，返回调整后的子树
+    将`curr_node`为根的子树调整平衡，返回调整后的子树
     注：
-        - 需要curr_node是copy出来的，且其左右子树已经平衡
+        - 需要`curr_node`是copy出来的，且其左右子树已经平衡
         - 左右子树高度差需保证最大为2
     */
     static NodePtr Rebalance(Node *curr_node)
@@ -166,7 +170,7 @@ public:
         return new_root;
     }
 
-    //删除node为根的子树中的最后一个元素，并将删除元素的数据赋值给instead_node，返回删除操作后的子树
+    //删除`node`为根的子树中的最后一个元素，并将删除元素的数据赋值给`instead_node`，返回删除操作后的子树
     static NodePtr DelLast(const Node *node, Node *instead_node)
     {
         if (!node->r_)
@@ -181,11 +185,11 @@ public:
     }
 
     /*
-    从线性表或类似线性表的结构构建对应的ImmutAVL子树
-    new_func返回指定索引的数据构建出的节点（调用者只需填充数据部分）
+    从线性表或类似线性表的结构构建对应的`ImmutAVL`子树
+    `new_func`返回指定索引的数据构建出的节点（调用者只需填充数据部分）
     输入数据区间为[begin_idx,end_idx)，调用者自己保证范围的合法性
-    注：一般是对需要构建的数据一次性调用Build，而不是分别Build后自行组合，
-    Build用二分法构建，保证返回的是AVL平衡树
+    注：一般是对需要构建的数据一次性调用`Build`，而不是分别`Build`后自行组合，
+    `Build`用二分法构建，保证返回的是AVL平衡树
     */
     static NodePtr Build(std::function<NodePtr (ssize_t idx)> new_func, ssize_t begin_idx, ssize_t end_idx)
     {
@@ -213,10 +217,10 @@ public:
 //下面几个宏用于定义子树高度、大小和左右子树指针以及相关方法的默认实现，对于子树大小使用者可以改用自己的方案
 
 /*
-由于sz_high_使用uint8_t，节点数量会被限制在2^40以内
-这样设计是因为h_也是8字节，避免中间有个padding字节，且由于sz_low_是uint32_t，
-在h_前面有两个padding字节的空间可以利用，例如用map实现set的时候，可以将key和value放在h_前面，
-且value类型设置为bool或char，避免空间浪费，这也是默认管理信息用宏而不是独立结构体的原因
+由于`sz_high_`使用uint8_t，节点数量会被限制在`2**40`以内
+这样设计是因为`h_`也是8字节，避免中间有个padding字节，且由于`sz_low_`是`uint32_t`，
+在`h_`前面有两个padding字节的空间可以利用，例如用map实现set的时候，可以将key和value放在`h_`前面，
+且value类型设置为`bool`或`char`，避免空间浪费，这也是默认管理信息用宏而不是独立结构体的原因
 */
 
 #define LOM_IMMUT_AVL_DEF_DEFAULT_NODE_MNG_ATTR()   \

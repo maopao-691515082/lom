@@ -35,7 +35,7 @@ static const double
     kDoubleMax = 0x1.FFFFFFFFFFFFFp1023;
 
 /*
-本库的风格是用ssize_t表示长度，但一般不会用kSSizeMax作为最大值，而是用2^48这个范围，
+本库的风格是用`ssize_t`表示长度，但一般不会用`kSSizeMax`作为最大值，而是用`2**48`这个范围，
 这个范围也足够大了（256T），且在做一些运算、存储方案时可以规避溢出之类的麻烦情况
 */
 static const ssize_t kSSizeSoftMax = ((ssize_t)1 << 48) - 1;

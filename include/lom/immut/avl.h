@@ -17,13 +17,13 @@ namespace immut
 通用的immut-avl，同时支持K-V映射模式和线性表模式
 两种模式没有明确区分和检查，使用者自己保证，即：
     如果采用K-V映射模式存储，则类似tree-map，按K有序存储：
-        - K类型实现operator<操作
-        - 写操作需要先Get确定K是否存在
-        - 若不存在，则必须在指定索引处AddByIdx
-        - 若存在，则必须只能通过SetByIdx修改V，不能修改K
+        - K类型实现`operator<`方法
+        - 写操作需要先`Get`确定K是否存在
+        - 若不存在，则必须在指定索引处`AddByIdx`
+        - 若存在，则必须只能通过`SetByIdx`修改V，不能修改K
     如果是采用线性表模式存储：
-        - 按K查找的方法（Get等）行为未定义
-    各接口输入idx值的范围由调用者保证合法性
+        - 按K查找的方法（`Get`等）行为未定义
+    各接口输入`idx`值的范围由调用者保证合法性
 
 这个结构一般不直接使用，而是用于其他具体结构的实现依赖
 */
@@ -223,7 +223,7 @@ public:
 
     /*
     K-V映射模式下按K查找，返回指向对应V的指针，返回nullptr表示不存在
-    若idx不为nullptr，则通过*idx返回所在的索引（若找到）或需要插入的位置（若不存在）
+    若`idx`不为nullptr，则通过`*idx`返回所在的索引（若找到）或需要插入的位置（若不存在）
     */
     const V *Get(const K &k, ssize_t *idx = nullptr) const
     {
@@ -238,7 +238,7 @@ public:
 
     /*
     允许负索引
-    AddByIdx时，idx可以为Size()，表示在末尾插入，其他接口下idx必须合法地指代存在的元素
+    `AddByIdx`时，`idx`可以为`Size()`，表示在末尾插入，其他接口下`idx`必须合法地指代存在的元素
     */
 
     std::pair<const K *, const V *> GetByIdx(ssize_t idx) const

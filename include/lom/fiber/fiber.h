@@ -25,8 +25,8 @@ void MustInit();    //init or die
 
 /*
 创建新的fiber
-run为入口函数
-stk_sz指定栈大小，不在范围则调整至边界值
+`run`为入口函数
+`stk_sz`指定栈大小，不在范围则调整至边界值
 */
 void Create(std::function<void ()> run, ssize_t stk_sz = kStkSizeMin);
 

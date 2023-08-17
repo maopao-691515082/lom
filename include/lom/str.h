@@ -18,7 +18,7 @@ class GoSlice;
 class Str;
 
 /*
-StrSlice用于引用一段连续的char数据
+`StrSlice`用于引用一段连续的char数据
 由于只是简单引用，因此使用者自行保证有效性，即作用域或生存期小于数据源
 支持负索引，索引存取的输入合法性由调用者保证
 */
@@ -26,7 +26,7 @@ class StrSlice final
 {
     /*
     一般的字符串slice是指针+长度的组合，这里稍微复杂一点，长度用48bit存储，
-    将空出来的两个字节中的一个用于标记此StrSlice后面是否有一个合法的字节\0，这在某些操作时会比较方便
+    将空出来的两个字节中的一个用于标记此StrSlice后面是否有一个合法的字节`\0`，这在某些操作时会比较方便
     */
     const char *p_;
     int16_t is_zero_end_;
@@ -54,7 +54,7 @@ public:
         len_low_ = len & kUInt32Max;
     }
 
-    //根据指定数据段构造，在未知信息的情况下is_zero_end_为false
+    //根据指定数据段构造，在未知信息的情况下`is_zero_end_`为false
     StrSlice(const char *p, ssize_t len) : StrSlice(p, len, false)
     {
     }
@@ -230,7 +230,7 @@ public:
     /*
     作为字符串来解析整数或浮点数，解析整数时可指定进制，进制为0表示自动按照前缀进行，返回是否成功
     注意和标准库的解析方式不同的是，这些接口不允许前导空白符，必须整个串是一个严格完整的数字表示才成功，
-    在类似需求下可以先用Trim方法去除空白等字符
+    在类似需求下可以先用`Trim`方法去除空白等字符
     */
     bool ParseInt64(int64_t &v, int base = 0) const;
     bool ParseUInt64(uint64_t &v, int base = 0) const;
@@ -241,19 +241,19 @@ public:
     /*
     返回串的可视化表示，规则：
         - 表示的两端用单引号括起来
-        - 常见转义字符用其转义形式表示：\a \b \f \n \r \t \v
-        - 反斜杠和单引号也用转义形式表示：\\ \'
-        - 其余字符中，编号32~126范围内的字符原样表示
-        - 剩余字符用两位16进制转义的形式表示：\xHH
+        - 常见转义字符用其转义形式表示：`\a \b \f \n \r \t \v`
+        - 反斜杠和单引号也用转义形式表示：`\\ \'`
+        - 其余字符中，编号`32~126`范围内的字符原样表示
+        - 剩余字符用两位16进制转义的形式表示：`\xHH`
     */
     Str Repr() const;
 
     /*
-    根据sep参数分割串，返回被分割后的各部分构成的GoSlice，规则：
-        - 若sep为空串，则根据连续空白符分割，且忽略两端空白符
-            - 例如："  \ta   \v b   \n\rc"被分割为["a", "b", "c"]
-        - 若sep不为空串，则严格按照sep分割，若出现K个sep，则严格分割为K+1部分
-            - 例如："|a|bc|  d||e"按"|"分割，结果是["", "a", "bc", "  d", "", "e"]
+    根据`sep`参数分割串，返回被分割后的各部分构成的`GoSlice`，规则：
+        - 若`sep`为空串，则根据连续空白符分割，且忽略两端空白符
+            - 例如：`"  \ta   \v b   \n\rc"`被分割为`["a", "b", "c"]`
+        - 若`sep`不为空串，则严格按照`sep`分割，若出现K个`sep`，则严格分割为`K+1`部分
+            - 例如：`"|a|bc|  d||e"`按`"|"`分割，结果是`["", "a", "bc", "  d", "", "e"]`
         - 返回的和当前串引用同一个数据源
     */
     GoSlice<StrSlice> Split(StrSlice sep) const;
@@ -263,8 +263,8 @@ public:
     Str Lower() const;
 
     /*
-    Hex将串转为16进制的形式，每个字符用两位HH表示，例如"1+2"转为"312B32"
-    Unhex执行反向操作，返回是否成功，若输入的不是合法的形式，则返回失败
+    `Hex`将串转为16进制的形式，每个字符用两位`HH`表示，例如`"1+2"`转为`"312B32"`
+    `Unhex`执行反向操作，返回是否成功，若输入的不是合法的形式，则返回失败
     */
     Str Hex(bool upper_case = true) const;
     bool Unhex(Str &s) const;
@@ -274,11 +274,11 @@ public:
     Str Join(const Iterator<Str>::Ptr &iter) const;
 
     /*
-    在当前串中查找子串a，并返回等同于将其替换为指定串的结果的新Str
-    第一种形式是通过f返回需要替换成的指定内容，每次替换都会调用一次f，第二种形式则是直接指定串b作为内容
-    max_count可限定最大替换次数
-    每一次替换完成后，是从剩余的串开始查找下一个串a，例如StrSlice("xxx").Replace("x", "xx")会返回"xxxxxx"，
-    而不会永久循环
+    在当前串中查找子串`a`，并返回等同于将其替换为指定串的结果的新Str
+    第一种形式是通过f返回需要替换成的指定内容，每次替换都会调用一次`f`，第二种形式则是直接指定串`b`作为内容
+    `max_count`可限定最大替换次数
+    每一次替换完成后，是从剩余的串开始查找下一个串`a`，
+    例如`StrSlice("xxx").Replace("x", "xx")`会返回`"xxxxxx"`，而不会永久循环
     */
     Str Replace(StrSlice a, std::function<StrSlice ()> f, ssize_t max_count = kStrLenMax) const;
     Str Replace(StrSlice a, StrSlice b, ssize_t max_count = kStrLenMax) const;
@@ -289,29 +289,29 @@ public:
 
 /*
 自实现的字符串类，和Java、Go等语言的字符串类相同，可视为引用不可变字符串的引用类型
-Str的大部分方法算法都是将自身转为StrSlice后，再调用其对应方法，以下这种情况不再单独注释说明
-和大部分字符串实现一样，Str会在有效数据末尾额外申请一个字节并存放\0，从而在某些方法下兼容C风格
+`Str`的大部分方法算法都是将自身转为`StrSlice`后，再调用其对应方法，以下这种情况不再单独注释说明
+和大部分字符串实现一样，`Str`会在有效数据末尾额外申请一个字节并存放`\0`，从而在某些方法下兼容C风格
 */
 class Str final
 {
-    //以这个结构体的指针指向申请的长串内存，然后用shared_ptr管理
+    //以这个结构体的指针指向申请的长串内存，然后用`shared_ptr`管理
     struct LongStr
     {
         char s_[1];
     };
 
     /*
-    Str结构和算法说明：
-        - 由于limit.h已经限定了指针是8字节，在字节对齐的情况下，
-          STL的shared_ptr或其他智能指针的实现大概率是16字节，或其他8的倍数，
-          所以这里就通过额外8字节的头部+shared_ptr大小来安排Str对象，若lsp_前出现padding也没关系
-        - ss=short-string，ss_len_字段表示短串长度，若为负数则表示当前Str是一个长串
-            - 短串存储是将Str结构中ss_len_之后的空间，即ss_start_开始的空间，看做一段内存直接存储字符串
-            - 长串存储是用ls_len_high_和ls_len_low_分别存储长度的高16位和低32位，然后由lsp_管理具体长串
-        - 由于含有末尾\0，再扣去ss_len_，则支持的短串长度为[0, sizeof(Str) - 2]
+    `Str`结构和算法说明：
+        - 由于`limit.h`已经限定了指针是8字节，在字节对齐的情况下，
+          STL的`shared_ptr`或其他智能指针的实现大概率是16字节，或其他8的倍数，
+          所以这里就通过额外8字节的头部+`shared_ptr`大小来安排`Str`对象，若`lsp_`前出现padding也没关系
+        - `ss`（short-string），`ss_len_`字段表示短串长度，若为负数则表示当前`Str`是一个长串
+            - 短串存储是将`Str`结构中`ss_len_`之后的空间，即`ss_start_`开始的空间，看做一段内存直接存储字符串
+            - 长串存储是用`ls_len_high_`和`ls_len_low_`分别存储长度的高16位和低32位，然后由`lsp_`管理具体长串
+        - 由于含有末尾`\0`，再扣去`ss_len_`，则支持的短串长度为[0, sizeof(Str) - 2]
 
     我们可以假设下述字段如所期望的布局方式存储，
-    并在下面的IsLongStr方法中做个静态断言检查以确保这个设计能正常运作
+    并在下面的`IsLongStr`方法中做个静态断言检查以确保这个设计能正常运作
     */
     int8_t ss_len_;
     char ss_start_;
@@ -381,7 +381,7 @@ class Str final
 
 public:
 
-    //从其他类型的数据转Str都通过StrSlice转统一流程
+    //从其他类型的数据转`Str`都通过`StrSlice`转统一流程
     Str(StrSlice s);
     Str() : Str(StrSlice())
     {
@@ -401,7 +401,7 @@ public:
         Assign(s);
     }
 
-    //移动构造会将s的内容迁移到当前对象，并将s置空，移动赋值操作也是一样的机制
+    //移动构造会将`s`的内容迁移到当前对象，并将`s`置空，移动赋值操作也是一样的机制
     Str(Str &&s)
     {
         MoveFrom(std::move(s));
@@ -458,7 +458,7 @@ public:
     {
         return IsLongStr() ? (static_cast<ssize_t>(ls_len_high_) << 32) + ls_len_low_ : ss_len_;
     }
-    //类似STL的string的c_str方法，Str对象会保证末尾有额外的\0，所以直接按C风格字符串访问是没问题的
+    //类似STL的`string`的`c_str`方法，`Str`对象会保证末尾有额外的`\0`，所以直接按C风格字符串访问是没问题的
     const char *CStr() const
     {
         return Data();
@@ -577,12 +577,12 @@ public:
         return Slice().Repr();
     }
 
-    //算法同StrSlice的Split，但返回的GoSlice的元素是Str对象类型
+    //算法同`StrSlice`的`Split`，但返回的`GoSlice`的元素是`Str`对象类型
     GoSlice<Str> Split(StrSlice sep) const;
 
     /*
-    Buf对象可看做是一段可写、可追加的字节区，一般用于构建字符串，不可拷贝构建或赋值
-    会保证逻辑数据后有一个额外的\0字节，但是调用者不应该去修改它，否则行为未定义
+    `Buf`对象可看做是一段可写、可追加的字节区，一般用于构建字符串，不可拷贝构建或赋值
+    会保证逻辑数据后有一个额外的`\0`字节，但是调用者不应该去修改它，否则行为未定义
     */
     class Buf
     {
@@ -612,7 +612,7 @@ public:
 
     public:
 
-        //可构建空Buf或指定len和cap构建，len和cap的合法性由调用者保证
+        //可构建空`Buf`或指定`len`和`cap`构建，`len`和`cap`的合法性由调用者保证
         Buf()
         {
             Construct();
@@ -631,8 +631,8 @@ public:
         }
 
         /*
-        返回当前Buf的数据指针和长度，注意由于Buf内部缓冲区是可扩缩的，这个指针和长度有可能失效，
-        需要调用者自行保证合法使用，大部分时候只需要安全使用下面的Write和Append方法即可
+        返回当前`Buf`的数据指针和长度，注意由于`Buf`内部缓冲区是可扩缩的，这个指针和长度有可能失效，
+        需要调用者自行保证合法使用，大部分时候只需要安全使用下面的`Write`和`Append`方法即可
         */
         char *Data() const
         {
@@ -643,7 +643,7 @@ public:
             return len_;
         }
 
-        //将Buf扩展到指定长度，若当前长度已>=len则不做变化
+        //将`Buf`扩展到指定长度，若当前长度已>=`len`则不做变化
         void FitLen(ssize_t len);
 
         //指定偏移写数据内容，若当前长度不足则会自动扩展到需要的长度
@@ -676,9 +676,9 @@ private:
 public:
 
     /*
-    从Buf对象移动构建或移动赋值Str，buf本身会被初始化为空
-    对于长串，是将buf维护的下层数据直接移动给Str对象，所以性能比较好，
-    但是可能会因为buf的构建过程浪费一定空间（即buf的cap_比len_要大）
+    从`Buf`对象移动构建或移动赋值`Str`，`buf`本身会被初始化为空
+    对于长串，是将`buf`维护的下层数据直接移动给`Str`对象，所以性能比较好，
+    但是可能会因为`buf`的构建过程浪费一定空间（即`buf`的`cap_`比`len_`要大）
     */
     Str(Buf &&buf)
     {
@@ -691,7 +691,7 @@ public:
         return *this;
     }
 
-    //将整数转为字符串（十进制），这里的实现比STL稍快一些（有的STL实现用snprintf）
+    //将整数转为字符串（十进制），这里的实现比STL稍快一些（有的STL实现用`snprintf`）
     static Str FromInt64(int64_t n);
     static Str FromUInt64(uint64_t n);
 
@@ -732,8 +732,8 @@ public:
 };
 
 /*
-类似标准库的sprintf，但不是打印到给定buf，而是打印成一个Str对象
-输入参数语法和printf族的规定一致
+类似标准库的`sprintf`，但不是打印到给定buf，而是打印成一个`Str`对象
+输入参数语法和`printf`族的规定一致
 */
 Str Sprintf(const char *fmt, ...) __attribute__((format(gnu_printf, 1, 2)));
 

@@ -8,20 +8,20 @@ namespace lom
 /*
 基于侵入式引用计数机制的智能指针实现
 
-RCPtr<T>是T的智能指针类型，其中T必须是RCObj的子类，以下文档的“类”、“对象”等名词都是特指这个体系下
+`RCPtr<T>`是T的智能指针类型，其中T必须是`RCObj`的子类，以下文档的“类”、“对象”等名词都是特指这个体系下
 
-用new新创建的对象引用计数为0，只有第一次进入RCPtr的管理时，机制才正式生效
-（也就是说当做普通对象来new、delete是没有问题的）
+用`new`新创建的对象引用计数为0，只有第一次进入`RCPtr`的管理时，机制才正式生效
+（也就是说不引入`RCPtr`管理时，当做普通对象来`new`、`delete`是没有问题的）
 
-RCObj维护了引用计数，因此如果用到了多继承，需自行用虚继承保证RCObj在继承关系中的唯一性
+`RCObj`维护了引用计数，因此如果用到了多继承，需自行用虚继承保证`RCObj`在继承关系中的唯一性
 
-由于是侵入式实现，因此在保证安全的前提下可以比较方便地进行RCPtr<T>和裸指针T *之间的转换，例如，
+由于是侵入式实现，因此在保证安全的前提下可以比较方便地进行`RCPtr<T>`和裸指针`T *`之间的转换，例如，
 函数传参可以统一用裸指针的风格，减少引用计数的原子操作，这是因为函数调用者一般都已经维持了计数，
 从而保证对象的生命周期延长至函数调用结束
 
-为空间考虑，RCObj并没有定义虚析构，如果在对应的类型体系中有可能通过基类指针来delete，可以继承自RCObjDyn，
-或自行在合适的继承层次上实现虚析构，为尽量避免错误，
-这里使用了Deleter和friend机制来禁止用RCPtr<RCObj>来管理对象
+为空间考虑，`RCObj`并没有定义虚析构，如果在对应的类型体系中有可能通过基类指针来`delete`，
+可以继承自`RCObjDyn`，或自行在合适的继承层次上实现虚析构，为尽量避免错误，
+这里使用了`Deleter`和friend机制来禁止用`RCPtr<RCObj>`来管理对象
 */
 
 class RCObj
@@ -45,7 +45,7 @@ protected:
 template <class T>
 class RCPtr;
 
-//RCPtr通过DeleterOfRCObjDerived来代理销毁对象，从而禁止了对RCObj的指针的delete（没析构访问权限）
+//`RCPtr`通过`DeleterOfRCObjDerived`来代理销毁对象，从而禁止了对`RCObj`的指针的`delete`（没析构访问权限）
 template <class D>
 class DeleterOfRCObjDerived
 {
