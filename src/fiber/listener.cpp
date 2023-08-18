@@ -81,6 +81,148 @@ Conn Listener::Accept(int64_t timeout_ms, int *err_code) const
 
 }
 
+class ServeWorker
+{
+    size_t idx_;
+    std::function<void (size_t)> init_worker_;
+    std::function<void (Conn)> work_with_conn_;
+    std::function<void (const Str &)> err_log_;
+
+    std::mutex lock_;
+    std::vector<int> conn_fds_;
+
+    void ThreadMain()
+    {
+        ::lom::fiber::MustInit();
+
+        if (init_worker_)
+        {
+            init_worker_(idx_);
+        }
+
+        ::lom::fiber::Create([this] () {
+            for (;;)
+            {
+                std::vector<int> conn_fds;
+                {
+                    std::lock_guard<std::mutex> lg(lock_);
+                    conn_fds = std::move(conn_fds_);
+                    conn_fds_.clear();
+                }
+
+                if (conn_fds.empty())
+                {
+                    ::lom::fiber::SleepMS(1);
+                    continue;
+                }
+
+                for (int fd : conn_fds)
+                {
+                    Conn conn = Conn::FromRawFd(fd);
+                    if (!conn.Valid())
+                    {
+                        if (err_log_)
+                        {
+                            err_log_(Sprintf(
+                                "lom.fiber.Listener.ServeWorker: register new conn fd failed [%s]",
+                                ::lom::Err().CStr()));
+                        }
+                        close(fd);
+                        continue;
+                    }
+
+                    ::lom::fiber::Create([work_with_conn = work_with_conn_, conn] () {
+                        work_with_conn(conn);
+                    });
+
+                    ::lom::fiber::Yield();
+                }
+            }
+        });
+
+        ::lom::fiber::Run();
+    }
+
+public:
+
+    ServeWorker(
+        size_t idx, std::function<void (size_t)> init_worker, std::function<void (Conn)> work_with_conn,
+        std::function<void (const Str &)> err_log
+    ) :
+        idx_(idx), init_worker_(init_worker), work_with_conn_(work_with_conn), err_log_(err_log)
+    {
+        std::thread(&ServeWorker::ThreadMain, this).detach();
+    }
+
+    void DeliverConnFd(int fd)
+    {
+        std::lock_guard<std::mutex> lg(lock_);
+        conn_fds_.emplace_back(fd);
+    }
+};
+
+int Listener::Serve(
+    size_t worker_count, std::function<void (Conn)> work_with_conn,
+    std::function<void (const Str &)> err_log, std::function<void (size_t)> init_worker) const
+{
+    if (worker_count > kWorkerCountMax)
+    {
+        worker_count = kWorkerCountMax;
+    }
+    std::vector<ServeWorker *> workers(worker_count);
+    for (size_t i = 0; i < worker_count; ++i)
+    {
+        workers[i] = new ServeWorker(i, init_worker, work_with_conn, err_log);
+    }
+
+    int err_code;
+    size_t next_worker_idx = 0;
+    for (;;)
+    {
+        Conn conn = Accept(-1, &err_code);
+        if (!conn.Valid())
+        {
+            if (err_code == ::lom::fiber::err_code::kClosed)
+            {
+                break;
+            }
+            if (err_log)
+            {
+                err_log(Sprintf(
+                    "lom.fiber.Listener.Serve: accept new client failed: %s", ::lom::Err().CStr()));
+            }
+            ::lom::fiber::SleepMS(1);
+            continue;
+        }
+
+        if (worker_count == 0)
+        {
+            ::lom::fiber::Create([work_with_conn, conn] () {
+                work_with_conn(conn);
+            });
+            continue;
+        }
+
+        if (!conn.Unreg())
+        {
+            if (err_log)
+            {
+                err_log(Sprintf(
+                    "lom.fiber.Listener.Serve: "
+                    "unreg new client fd from listener thread fiber sched failed: %s",
+                    ::lom::Err().CStr()));
+            }
+            conn.Close();
+            continue;
+        }
+
+        workers.at(next_worker_idx)->DeliverConnFd(conn.RawFd());
+        next_worker_idx = (next_worker_idx + 1) % workers.size();
+    }
+
+    return err_code;
+}
+
 Listener Listener::FromRawFd(int fd)
 {
     Listener listener;
