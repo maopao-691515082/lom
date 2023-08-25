@@ -6,7 +6,7 @@ all: clean
 	@cp -r include build/lom/include
 	@rm -rf build/lom/defs.mk
 	@cp defs.mk build/lom/defs.mk
-	@python3 gen_build_mk.py
+	@python gen_build_mk.py
 	@make -C build all
 
 clean:
